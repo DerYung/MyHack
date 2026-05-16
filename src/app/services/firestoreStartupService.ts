@@ -58,9 +58,13 @@ export async function updateCompany(
 
 /** Get all companies, ordered by newest first */
 export async function getAllCompanies(): Promise<CompanyDoc[]> {
-  const q = query(collection(db, COLLECTION), orderBy("created_at", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), uid: d.id } as CompanyDoc));
+  const snap = await getDocs(collection(db, COLLECTION));
+  const docs = snap.docs.map((d) => ({ ...d.data(), uid: d.id } as CompanyDoc));
+  return docs.sort((a, b) => {
+    const timeA = typeof a.created_at === 'number' ? a.created_at : (a.created_at?.toMillis?.() || 0);
+    const timeB = typeof b.created_at === 'number' ? b.created_at : (b.created_at?.toMillis?.() || 0);
+    return timeB - timeA;
+  });
 }
 
 /** Get companies filtered by status */
