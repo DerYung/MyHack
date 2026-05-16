@@ -90,16 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-      // 1. Save base profile
+      // 1. Save base profile to `users` collection
       await setDoc(doc(db, "users", user.uid), newProfile);
       
-      // 2. Save role-specific profile
+      // 2. Save role-specific profile (snake_case fields per shared contract)
       let collectionName = "";
       switch (role) {
-        case "Startup": collectionName = "startups"; break;
+        case "Startup": collectionName = "companies"; break;
         case "Mentor": collectionName = "mentors"; break;
         case "Funder": collectionName = "funders"; break;
-        case "Admin": collectionName = "admins"; break; // Unlikely to be used here
+        case "Admin": collectionName = "admins"; break;
       }
       
       if (collectionName) {
@@ -108,8 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uid: user.uid,
           email: user.email,
           name: user.displayName,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          created_at: Date.now(),
+          updated_at: Date.now(),
         });
       }
 

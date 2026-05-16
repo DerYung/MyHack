@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
-import { Rocket, Users, TrendingUp, Plus, FileText, CheckCircle, Clock, ArrowRight, Activity, Sparkles, Target, ShieldCheck } from 'lucide-react';
+import { Rocket, Users, TrendingUp, Plus, FileText, CheckCircle, Clock, ArrowRight, Activity, Sparkles, Target, ShieldCheck, Brain } from 'lucide-react';
 import { mockStartups, mockMentors, mockFunders } from '../lib/mockData';
 import { Startup, Mentor, Funder } from '../types';
 import { motion } from 'motion/react';
@@ -17,12 +17,19 @@ export function Dashboard() {
 
   useEffect(() => {
     if (loading) return;
-    
-    if (!userProfile) {
-      navigate('/login');
+
+    // Fall back to localStorage role if Firebase profile not available
+    const role = userProfile?.role?.toLowerCase() || localStorage.getItem('userRole') || '';
+
+    if (!role) {
+      navigate('/');
       return;
     }
-    setUserRole(userProfile.role.toLowerCase());
+    if (role === 'admin') {
+      navigate('/admin');
+      return;
+    }
+    setUserRole(role);
 
     const customStartups = localStorage.getItem('customStartups');
     if (customStartups) {
@@ -33,7 +40,7 @@ export function Dashboard() {
         console.error('Failed to parse custom startups', e);
       }
     }
-  }, [navigate]);
+  }, [loading, userProfile, navigate]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -42,7 +49,7 @@ export function Dashboard() {
 
   const bentoVariants = {
     hidden: { opacity: 0, scale: 0.95, y: 10 },
-    visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
   };
 
   // ---------------------------------------------------------------------------
@@ -186,9 +193,10 @@ export function Dashboard() {
               <div className="flex-1 relative before:absolute before:inset-0 before:ml-4 before:h-full before:w-0.5 before:bg-gray-100 space-y-6">
                 {[
                   { title: "Idea Ingested", desc: myStartup.submittedAt, active: true },
-                  { title: "Mentor Attached", desc: myStartup.status === 'submitted' ? "Waiting for match..." : "Matched & Mentoring", active: myStartup.status !== 'submitted' },
-                  { title: "Intelligence Ready", desc: myStartup.status === 'ready' ? "Brief generated" : "Pending refinement", active: myStartup.status === 'ready' },
-                  { title: "Funder Syndication", desc: "Awaiting matches", active: false }
+                  { title: "Governance Approval", desc: myStartup.status === 'pending_mentor_approval' ? "Admin reviewing link..." : (myStartup.status === 'submitted' ? "Waiting for match" : "Link Approved"), active: !['submitted', 'pending_mentor_approval'].includes(myStartup.status) },
+                  { title: "Mentor Attached", desc: myStartup.status === 'submitted' || myStartup.status === 'pending_mentor_approval' ? "Waiting..." : "Matched & Mentoring", active: !['submitted', 'pending_mentor_approval'].includes(myStartup.status) },
+                  { title: "Intelligence Ready", desc: myStartup.status === 'ready' || myStartup.status.includes('funder') || myStartup.status === 'funded' ? "Brief generated" : "Pending refinement", active: myStartup.status === 'ready' || myStartup.status.includes('funder') || myStartup.status === 'funded' },
+                  { title: "Funder Syndication", desc: myStartup.status === 'pending_funder_approval' ? "Admin approving deal..." : (myStartup.status === 'funded' ? "Capital Deployed" : "Awaiting matches"), active: myStartup.status === 'funded' }
                 ].map((step, i) => (
                   <div key={i} className="relative flex gap-4 items-start z-10">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-4 border-white ${step.active ? 'bg-green-500' : 'bg-gray-200'}`}>
@@ -202,6 +210,26 @@ export function Dashboard() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Bento Box 5: Inference Engine shortcut (Span 4 cols) */}
+            <motion.div
+              variants={bentoVariants}
+              className="md:col-span-4 glass rounded-3xl p-6 bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-xl flex items-center justify-between gap-6 cursor-pointer hover:scale-[1.01] transition-transform group"
+              onClick={() => navigate('/inference-engine')}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 flex-shrink-0">
+                  <Brain className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-indigo-200 text-[10px] uppercase font-bold tracking-widest mb-0.5">Transparency Report</p>
+                  <h3 className="text-xl font-black">Why Did the AI Choose Your Matches?</h3>
+                  <p className="text-indigo-200 text-sm mt-1">See the weighted score breakdown for every mentor and funder in your pipeline.</p>
+                </div>
+              </div>
+              <ArrowRight className="w-8 h-8 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0" />
+            </motion.div>
+
           </motion.div>
         </div>
       </div>
@@ -277,7 +305,7 @@ export function Dashboard() {
                             </div>
                             <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-none">Refining</Badge>
                           </div>
-                          <Progress value={startup.aiScore} className="h-2 mb-2 bg-gray-200" indicatorClassName="bg-purple-500" />
+                          <Progress value={startup.aiScore} className="h-2 mb-2 bg-gray-200 [&>div]:bg-purple-500" />
                           <div className="flex justify-between text-xs font-bold text-gray-400 uppercase mb-6">
                             <span>Readiness</span>
                             <span className="text-purple-600">{startup.aiScore}/100</span>
