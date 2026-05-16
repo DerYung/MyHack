@@ -1,6 +1,5 @@
 import { createBrowserRouter } from "react-router";
-import { LandingPage } from "./pages/LandingPage";
-import { Dashboard } from "./pages/Dashboard";
+import { DashboardRouter } from "./pages/DashboardRouter";
 import { SubmitStartup } from "./pages/SubmitStartup";
 import { MentorMatching } from "./pages/MentorMatching";
 import { InvestorBrief } from "./pages/InvestorBrief";
@@ -9,6 +8,7 @@ import { CoInvestment } from "./pages/CoInvestment";
 import { NotFound } from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
+import { LandingPage } from "./pages/LandingPage";
 
 import { Layout } from "./components/Layout";
 
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/dashboard",
-        Component: Dashboard,
+        Component: DashboardRouter,
       },
       {
         path: "/submit-startup",
