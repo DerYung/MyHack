@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -10,16 +11,18 @@ import { motion } from 'motion/react';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { userProfile, loading } = useAuth();
   const [userRole, setUserRole] = useState<string>('');
   const [startups, setStartups] = useState<Startup[]>(mockStartups);
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    if (!role) {
-      navigate('/');
+    if (loading) return;
+    
+    if (!userProfile) {
+      navigate('/login');
       return;
     }
-    setUserRole(role);
+    setUserRole(userProfile.role.toLowerCase());
 
     const customStartups = localStorage.getItem('customStartups');
     if (customStartups) {
