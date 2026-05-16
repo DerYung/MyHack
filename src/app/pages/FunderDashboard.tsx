@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getCompaniesByStatus } from '../services/firestoreStartupService';
 import { getFunder } from '../services/firestoreFunderService';
 import type { CompanyDoc, FunderDoc } from '../types/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,23 +28,31 @@ export function FunderDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
 
-      try {
-        const funderDoc = await getFunder(user.uid);
-        setFunder(funderDoc);
-        
-        const companies = await getCompaniesByStatus('ready');
-        setReadyStartups(companies);
-      } catch (err) {
-        console.error('Failed to fetch deal flow data:', err);
-      } finally {
+    const unsubscribe = onSnapshot(
+      doc(db, 'funders', user.uid),
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          const funderDoc = { ...docSnap.data(), uid: docSnap.id } as FunderDoc;
+          setFunder(funderDoc);
+          
+          try {
+            const companies = await getCompaniesByStatus('ready');
+            setReadyStartups(companies);
+          } catch (err) {
+            console.error('Failed to fetch deal flow data:', err);
+          }
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Failed to fetch funder data:', err);
         setLoading(false);
       }
-    }
+    );
 
-    fetchData();
+    return () => unsubscribe();
   }, [user]);
 
   if (loading) {

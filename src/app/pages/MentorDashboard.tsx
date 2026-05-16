@@ -11,6 +11,8 @@ import { getMentor } from '../services/firestoreMentorService';
 import { getLinkagesForMentor } from '../services/firestoreLinkageService';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
 import type { LinkageDoc, CompanyDoc, MentorDoc } from '../types/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,36 +38,43 @@ export function MentorDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
 
-      try {
-        const mentorDoc = await getMentor(user.uid);
-        setMentor(mentorDoc);
+    const unsubscribe = onSnapshot(
+      doc(db, 'mentors', user.uid),
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          const mentorDoc = { ...docSnap.data(), uid: docSnap.id } as MentorDoc;
+          setMentor(mentorDoc);
 
-        // Fetch all linkages where this mentor is assigned
-        const linkages = await getLinkagesForMentor(user.uid);
+          try {
+            // Fetch all linkages where this mentor is assigned
+            const linkages = await getLinkagesForMentor(user.uid);
 
-        // For each linkage, fetch the company document
-        const results: AssignedStartup[] = [];
-        for (const linkage of linkages) {
-          if (!linkage.company_uid) continue;
-          const company = await getCompany(linkage.company_uid);
-          if (company) {
-            results.push({ company, linkage });
+            // For each linkage, fetch the company document
+            const results: AssignedStartup[] = [];
+            for (const linkage of linkages) {
+              if (!linkage.company_uid) continue;
+              const company = await getCompany(linkage.company_uid);
+              if (company) {
+                results.push({ company, linkage });
+              }
+            }
+            setAssigned(results);
+          } catch (err) {
+            console.error('Failed to fetch assigned startups:', err);
           }
         }
-
-        setAssigned(results);
-      } catch (err) {
+        setLoading(false);
+      },
+      (err) => {
         console.error('Failed to fetch mentor data:', err);
         setError('Failed to load your assigned startups.');
-      } finally {
         setLoading(false);
       }
-    }
+    );
 
-    fetchData();
+    return () => unsubscribe();
   }, [user]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────

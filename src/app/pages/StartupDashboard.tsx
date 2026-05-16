@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
 import { getMentor } from '../services/firestoreMentorService';
 import type { CompanyDoc, MentorDoc } from '../types/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,30 +31,38 @@ export function StartupDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const companyData = await getCompany(user.uid);
-        setCompany(companyData);
-
-        // If a mentor is assigned, fetch their profile too
-        if (companyData?.mentor_uid) {
-          const mentorData = await getMentor(companyData.mentor_uid);
-          setMentor(mentorData);
-        }
-      } catch (err) {
-        console.error('Failed to fetch startup data:', err);
-        setError('Failed to load your startup data.');
-      } finally {
-        setLoading(false);
-      }
+    if (!user) {
+      setLoading(false);
+      return;
     }
 
-    fetchData();
+    const unsubscribe = onSnapshot(
+      doc(db, 'companies', user.uid),
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          const companyData = { ...docSnap.data(), uid: docSnap.id } as CompanyDoc;
+          setCompany(companyData);
+
+          // If a mentor is assigned, fetch their profile too
+          if (companyData.mentor_uid) {
+            try {
+              const mentorData = await getMentor(companyData.mentor_uid);
+              setMentor(mentorData);
+            } catch (err) {
+              console.error('Failed to fetch mentor:', err);
+            }
+          }
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Failed to fetch startup data:', err);
+        setError('Failed to load your startup data.');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, [user]);
 
   // ── Loading State ──────────────────────────────────────────────────────────

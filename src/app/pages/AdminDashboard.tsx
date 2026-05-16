@@ -38,10 +38,10 @@ export function AdminDashboard() {
           if (!c.is_approved) pending.push({ uid: c.uid, type: 'startup', name: c.name, details: `${c.sector} • ${c.stage}` });
         });
         mentors.forEach(m => {
-          if (!m.is_approved) pending.push({ uid: m.uid, type: 'mentor', name: m.name, details: `${m.industries.join(', ')} • ${m.years_experience}y exp` });
+          if (!m.is_approved) pending.push({ uid: m.uid, type: 'mentor', name: m.name, details: `${(m.industries || []).join(', ')} • ${m.years_experience}y exp` });
         });
         funders.forEach(f => {
-          if (!f.is_approved) pending.push({ uid: f.uid, type: 'funder', name: f.name, details: `${f.investment_focus.join(', ')}` });
+          if (!f.is_approved) pending.push({ uid: f.uid, type: 'funder', name: f.name, details: `${(f.investment_focus || []).join(', ')}` });
         });
 
         setPendingUsers(pending);
