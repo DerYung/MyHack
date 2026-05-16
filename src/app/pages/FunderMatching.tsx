@@ -19,6 +19,11 @@ export function FunderMatching() {
   const [isSearching, setIsSearching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [matchedDeal, setMatchedDeal] = useState<CompanyDoc | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  const toggleFlip = (uid: string) => {
+    setFlippedCards(prev => ({ ...prev, [uid]: !prev[uid] }));
+  };
 
   useEffect(() => {
     async function loadDeals() {
@@ -52,6 +57,12 @@ export function FunderMatching() {
           mentor_uid: user.uid,
           company_uid: deal.uid,
           status: 'active'
+        });
+        
+        import('../services/firestoreStartupService').then(({ updateCompany }) => {
+           updateCompany(deal.uid, {
+             status: 'matched'
+           });
         });
         
         setMatchedDeal(deal);
@@ -176,9 +187,10 @@ export function FunderMatching() {
                 
                 return (
                   <motion.div
-                    key={deal.id}
-                    className="absolute inset-0 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden border border-gray-100 flex flex-col"
+                    key={deal.uid}
+                    className="absolute inset-0"
                     style={{
+                      perspective: 1000,
                       zIndex: deals.length - index,
                       ...(isTop ? { x, rotate, opacity } : { scale: 1 - index * 0.05, y: index * 20 })
                     }}
@@ -187,60 +199,116 @@ export function FunderMatching() {
                     dragElastic={1}
                     onDragEnd={(e, { offset, velocity }) => {
                       const swipe = offset.x;
-                      if (swipe > 100) handleSwipe('right', deal.id);
-                      else if (swipe < -100) handleSwipe('left', deal.id);
+                      if (swipe > 100) handleSwipe('right', deal.uid);
+                      else if (swipe < -100) handleSwipe('left', deal.uid);
                     }}
                   >
-                    {/* Overlays for swipe feedback */}
-                    {isTop && (
-                      <>
-                        <motion.div style={{ opacity: crossOpacity }} className="absolute top-10 right-10 z-50 border-4 border-red-500 text-red-500 font-black text-4xl px-4 py-1 rounded-xl rotate-12 bg-white/80 backdrop-blur-sm">
-                          PASS
-                        </motion.div>
-                        <motion.div style={{ opacity: heartOpacity }} className="absolute top-10 left-10 z-50 border-4 border-green-500 text-green-500 font-black text-4xl px-4 py-1 rounded-xl -rotate-12 bg-white/80 backdrop-blur-sm">
-                          INVEST
-                        </motion.div>
-                      </>
-                    )}
+                    <motion.div 
+                      className="w-full h-full relative cursor-pointer"
+                      style={{ transformStyle: "preserve-3d" }}
+                      animate={{ rotateY: flippedCards[deal.uid] ? 180 : 0 }}
+                      transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+                      onClick={() => toggleFlip(deal.uid)}
+                    >
+                      {/* FRONT FACE */}
+                      <div className="absolute inset-0 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden border border-gray-100 flex flex-col" style={{ backfaceVisibility: "hidden" }}>
+                        {/* Overlays for swipe feedback */}
+                        {isTop && (
+                          <>
+                            <motion.div style={{ opacity: crossOpacity }} className="absolute top-10 right-10 z-50 border-4 border-red-500 text-red-500 font-black text-4xl px-4 py-1 rounded-xl rotate-12 bg-white/80 backdrop-blur-sm">
+                              PASS
+                            </motion.div>
+                            <motion.div style={{ opacity: heartOpacity }} className="absolute top-10 left-10 z-50 border-4 border-green-500 text-green-500 font-black text-4xl px-4 py-1 rounded-xl -rotate-12 bg-white/80 backdrop-blur-sm">
+                              INVEST
+                            </motion.div>
+                          </>
+                        )}
 
-                    {/* Deal Image / Cover */}
-                    <div className="h-[45%] bg-gradient-to-br from-green-500 to-blue-600 relative flex flex-col justify-end p-6 overflow-hidden">
-                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
-                       <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-1 shadow-lg border border-white/20">
-                          <Sparkles className="w-4 h-4 text-green-300" /> {deal.ai_score || 85}% Match
-                       </div>
-                       
-                       <div className="relative z-10">
-                         <div className="w-16 h-16 rounded-2xl bg-white shadow-xl flex items-center justify-center mb-4 border-4 border-white/20 backdrop-blur-sm">
-                            <Rocket className="w-8 h-8 text-blue-600" />
-                         </div>
-                         <h2 className="text-4xl font-black text-white leading-none drop-shadow-md">{deal.name}</h2>
-                       </div>
-                    </div>
-                    
-                    <div className="p-6 flex-1 flex flex-col">
-                      <div className="flex gap-2 mb-4">
-                        <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-none shadow-none">{deal.sector}</Badge>
-                        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none shadow-none">{deal.stage}</Badge>
+                        {/* Deal Image / Cover */}
+                        <div className="h-[45%] bg-gradient-to-br from-green-500 to-blue-600 relative flex flex-col justify-end p-6 overflow-hidden">
+                           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
+                           <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-1 shadow-lg border border-white/20">
+                              <Sparkles className="w-4 h-4 text-green-300" /> {deal.ai_score || 85}% Match
+                           </div>
+                           
+                           <div className="relative z-10">
+                             <div className="w-16 h-16 rounded-2xl bg-white shadow-xl flex items-center justify-center mb-4 border-4 border-white/20 backdrop-blur-sm">
+                                <Rocket className="w-8 h-8 text-blue-600" />
+                             </div>
+                             <h2 className="text-4xl font-black text-white leading-none drop-shadow-md">{deal.name}</h2>
+                           </div>
+                        </div>
+                        
+                        <div className="p-6 flex-1 flex flex-col">
+                          <div className="flex gap-2 mb-4">
+                            <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-none shadow-none">{deal.sector}</Badge>
+                            <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none shadow-none">{deal.stage}</Badge>
+                          </div>
+
+                          <p className="text-gray-600 mb-6 flex-1 line-clamp-4 leading-relaxed font-medium">
+                            {deal.description}
+                          </p>
+
+                          <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                             <div className="flex justify-between items-center">
+                                <div>
+                                   <p className="text-xs font-bold text-gray-400 uppercase mb-1">Seeking Investment</p>
+                                   <p className="text-2xl font-black text-green-600">${(deal.budget_needed / 1000).toFixed(0)}K</p>
+                                </div>
+                                <div className="text-right">
+                                   <p className="text-xs font-bold text-gray-400 uppercase mb-1">Market Goals</p>
+                                   <p className="text-lg font-bold text-gray-900 capitalize truncate w-24" title={deal.market_goals}>{deal.market_goals ? "Verified" : "Pending"}</p>
+                                </div>
+                             </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <p className="text-gray-600 mb-6 flex-1 line-clamp-4 leading-relaxed font-medium">
-                        {deal.description}
-                      </p>
+                      {/* BACK FACE */}
+                      <div className="absolute inset-0 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-y-auto border border-gray-100 flex flex-col p-6 custom-scrollbar" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                           <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                              <Rocket className="w-6 h-6" />
+                           </div>
+                           <div>
+                              <h2 className="text-xl font-black text-gray-900 leading-none">{deal.name}</h2>
+                              <p className="text-sm font-bold text-gray-500">{deal.sector} • {deal.stage}</p>
+                           </div>
+                        </div>
+                        
+                        <div className="space-y-6 flex-1">
+                          <div>
+                            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Full Description</h3>
+                            <p className="text-gray-700 text-sm leading-relaxed font-medium">{deal.description}</p>
+                          </div>
 
-                      <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                         <div className="flex justify-between items-center">
-                            <div>
-                               <p className="text-xs font-bold text-gray-400 uppercase mb-1">Seeking Investment</p>
-                               <p className="text-2xl font-black text-green-600">${(deal.budget_needed / 1000).toFixed(0)}K</p>
+                          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Market Goals</h3>
+                            <p className="text-gray-800 text-sm font-medium">{deal.market_goals || "No specific market goals provided."}</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                              <p className="text-xs font-bold text-gray-400 uppercase mb-1">Region</p>
+                              <p className="text-sm font-bold text-gray-900">{deal.region}</p>
                             </div>
-                            <div className="text-right">
-                               <p className="text-xs font-bold text-gray-400 uppercase mb-1">Market Goals</p>
-                               <p className="text-lg font-bold text-gray-900 capitalize truncate w-24" title={deal.market_goals}>{deal.market_goals ? "Verified" : "Pending"}</p>
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                              <p className="text-xs font-bold text-gray-400 uppercase mb-1">Budget</p>
+                              <p className="text-sm font-bold text-gray-900">${(deal.budget_needed / 1000).toFixed(0)}K</p>
                             </div>
-                         </div>
+                          </div>
+                          
+                          <div>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Budget Breakdown</h3>
+                            <p className="text-gray-700 text-sm leading-relaxed font-medium">{deal.budget_breakdown || "No breakdown provided."}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+                           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Click anywhere to flip back</span>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </motion.div>
                 );
               })}

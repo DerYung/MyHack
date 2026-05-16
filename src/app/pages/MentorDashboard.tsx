@@ -7,9 +7,12 @@ import { Users, ShieldCheck, TrendingUp, CheckCircle, Loader2, Activity } from '
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { getMentor } from '../services/firestoreMentorService';
 import { getLinkagesForMentor } from '../services/firestoreLinkageService';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
-import type { LinkageDoc, CompanyDoc } from '../types/firestore';
+import type { LinkageDoc, CompanyDoc, MentorDoc } from '../types/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,38 +32,49 @@ interface AssignedStartup {
 export function MentorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [mentor, setMentor] = useState<MentorDoc | null>(null);
   const [assigned, setAssigned] = useState<AssignedStartup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
 
-      try {
-        // Fetch all linkages where this mentor is assigned
-        const linkages = await getLinkagesForMentor(user.uid);
+    const unsubscribe = onSnapshot(
+      doc(db, 'mentors', user.uid),
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          const mentorDoc = { ...docSnap.data(), uid: docSnap.id } as MentorDoc;
+          setMentor(mentorDoc);
 
-        // For each linkage, fetch the company document
-        const results: AssignedStartup[] = [];
-        for (const linkage of linkages) {
-          if (!linkage.company_uid) continue;
-          const company = await getCompany(linkage.company_uid);
-          if (company) {
-            results.push({ company, linkage });
+          try {
+            // Fetch all linkages where this mentor is assigned
+            const linkages = await getLinkagesForMentor(user.uid);
+
+            // For each linkage, fetch the company document
+            const results: AssignedStartup[] = [];
+            for (const linkage of linkages) {
+              if (!linkage.company_uid) continue;
+              const company = await getCompany(linkage.company_uid);
+              if (company) {
+                results.push({ company, linkage });
+              }
+            }
+            setAssigned(results);
+          } catch (err) {
+            console.error('Failed to fetch assigned startups:', err);
           }
         }
-
-        setAssigned(results);
-      } catch (err) {
+        setLoading(false);
+      },
+      (err) => {
         console.error('Failed to fetch mentor data:', err);
         setError('Failed to load your assigned startups.');
-      } finally {
         setLoading(false);
       }
-    }
+    );
 
-    fetchData();
+    return () => unsubscribe();
   }, [user]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
@@ -114,6 +128,21 @@ export function MentorDashboard() {
     );
   }
 
+  // ── Pending Verification State ─────────────────────────────────────────────
+  if (mentor && !mentor.is_approved) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass rounded-3xl p-12 max-w-md text-center shadow-2xl border border-yellow-200 bg-white">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pending Verification</h2>
+          <p className="text-gray-500 mb-6">Your mentor profile is currently being reviewed by an Administrator. You will be able to access the Mentor Radar once verified.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Status badge helper ────────────────────────────────────────────────────
   const statusBadge = (status: CompanyDoc['status']) => {
     const map: Record<CompanyDoc['status'], { bg: string; text: string; label: string }> = {
@@ -125,6 +154,15 @@ export function MentorDashboard() {
     };
     const s = map[status] ?? map.submitted;
     return <Badge className={`${s.bg} ${s.text} hover:${s.bg} border-none`}>{s.label}</Badge>;
+  };
+
+  // ── Currency Formatter ─────────────────────────────────────────────────────
+  const formatCurrency = (val: number) => {
+    if (val === 0) return "$0";
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(1)}K`;
+    return `$${val}`;
   };
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -144,6 +182,24 @@ export function MentorDashboard() {
           animate="visible"
           variants={containerVariants}
         >
+          {/* Sourcing Hub */}
+          <motion.div variants={bentoVariants} className="md:col-span-3 glass rounded-3xl p-8 bg-white shadow-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-left relative overflow-hidden group border border-gray-100">
+             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="flex items-center gap-6 relative z-10">
+               <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Activity className="w-8 h-8 animate-pulse" />
+               </div>
+               <div>
+                 <h2 className="text-2xl font-black mb-1">Find Startups to Mentor</h2>
+                 <p className="text-gray-500 max-w-md">
+                   Review startups that have requested mentorship and match with those that fit your expertise.
+                 </p>
+               </div>
+             </div>
+             <Button onClick={() => navigate('/mentor-matching')} size="lg" className="mt-6 sm:mt-0 rounded-full shadow-xl h-14 px-8 text-lg bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white hover:scale-105 transition-all relative z-10">
+               Open Mentor Radar
+             </Button>
+          </motion.div>
           {/* Stat: Total Assigned */}
           <motion.div variants={bentoVariants} className="glass rounded-3xl p-6 bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex flex-col justify-between shadow-xl">
             <Users className="w-10 h-10 opacity-80" />
@@ -164,12 +220,12 @@ export function MentorDashboard() {
             </div>
           </motion.div>
 
-          {/* Stat: Portfolio Impact */}
+          {/* Stat: Advisory Pipeline */}
           <motion.div variants={bentoVariants} className="glass rounded-3xl p-6 bg-white border-orange-500/20 flex flex-col justify-between shadow-xl">
             <TrendingUp className="w-10 h-10 text-orange-500" />
             <div>
-              <p className="font-bold text-gray-400 uppercase text-xs tracking-wider">Portfolio Impact</p>
-              <h2 className="text-5xl font-black text-gray-900">${(totalBudget / 1000000).toFixed(1)}M</h2>
+              <p className="font-bold text-gray-400 uppercase text-xs tracking-wider">Advisory Pipeline</p>
+              <h2 className="text-5xl font-black text-gray-900">{formatCurrency(totalBudget)}</h2>
             </div>
           </motion.div>
 

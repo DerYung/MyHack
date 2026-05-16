@@ -27,9 +27,9 @@ export async function getMentor(uid: string): Promise<MentorDoc | null> {
 
 /** Get all mentors */
 export async function getAllMentors(): Promise<MentorDoc[]> {
-  const q = query(collection(db, COLLECTION), orderBy("years_experience", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), uid: d.id } as MentorDoc));
+  const snap = await getDocs(collection(db, COLLECTION));
+  const docs = snap.docs.map((d) => ({ ...d.data(), uid: d.id } as MentorDoc));
+  return docs.sort((a, b) => (b.years_experience || 0) - (a.years_experience || 0));
 }
 
 /** Create a new mentor profile */

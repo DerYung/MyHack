@@ -53,6 +53,7 @@ app.add_middleware(
         "http://localhost:5173",    # Vite default
         "http://localhost:3000",    # Alternative
         "http://127.0.0.1:5173",
+        "*",                        # Allow production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],

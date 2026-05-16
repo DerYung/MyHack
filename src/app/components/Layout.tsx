@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
 import { useAuth } from "../contexts/AuthContext";
+import ClickSpark from "./ClickSpark";
 
 export function Layout() {
   const location = useLocation();
@@ -10,13 +11,11 @@ export function Layout() {
 
   const navLinks = [
     { name: "Dashboard", path: "/dashboard" },
-    { name: "Submit Startup", path: "/submit-startup" },
-    { name: "Mentor Matching", path: "/mentor-matching" },
-    { name: "Funder Matching", path: "/funder-matching" },
   ];
 
   return (
-    <div className="min-h-screen bg-emerald-50/30 flex flex-col">
+    <ClickSpark sparkColor="#10b981" sparkSize={12} sparkRadius={20} sparkCount={10} duration={600}>
+      <div className="min-h-screen bg-emerald-50/30 flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-emerald-100 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="font-bold text-xl md:text-2xl tracking-tighter text-emerald-700 flex-shrink-0">
@@ -86,5 +85,6 @@ export function Layout() {
         <Outlet />
       </main>
     </div>
+    </ClickSpark>
   );
 }

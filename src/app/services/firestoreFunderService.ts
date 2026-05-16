@@ -27,9 +27,9 @@ export async function getFunder(uid: string): Promise<FunderDoc | null> {
 
 /** Get all funders */
 export async function getAllFunders(): Promise<FunderDoc[]> {
-  const q = query(collection(db, COLLECTION), orderBy("successful_investments", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), uid: d.id } as FunderDoc));
+  const snap = await getDocs(collection(db, COLLECTION));
+  const docs = snap.docs.map((d) => ({ ...d.data(), uid: d.id } as FunderDoc));
+  return docs.sort((a, b) => (b.successful_investments || 0) - (a.successful_investments || 0));
 }
 
 /** Create a new funder profile */

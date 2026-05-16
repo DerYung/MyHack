@@ -22,6 +22,7 @@ export interface CompanyDoc {
   mentor_uid: string | null;
   created_at: Timestamp | number;
   updated_at: Timestamp | number;
+  is_approved?: boolean;
 }
 
 // ─── DS2: Mentors ────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ export interface MentorDoc {
   avg_outcome_rating: number;
   created_at: Timestamp | number;
   updated_at: Timestamp | number;
+  is_approved?: boolean;
 }
 
 // ─── DS3: Funders ────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ export interface FunderDoc {
   successful_investments: number;
   created_at: Timestamp | number;
   updated_at: Timestamp | number;
+  is_approved?: boolean;
 }
 
 // ─── DS4: Linkages ───────────────────────────────────────────────────────────

@@ -5,7 +5,10 @@ import { Target, CheckCircle, Users, Activity, ArrowRight, Loader2 } from 'lucid
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCompaniesByStatus } from '../services/firestoreStartupService';
-import type { CompanyDoc } from '../types/firestore';
+import { getFunder } from '../services/firestoreFunderService';
+import type { CompanyDoc, FunderDoc } from '../types/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,23 +24,35 @@ export function FunderDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [readyStartups, setReadyStartups] = useState<CompanyDoc[]>([]);
+  const [funder, setFunder] = useState<FunderDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!user) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
 
-      try {
-        const companies = await getCompaniesByStatus('ready');
-        setReadyStartups(companies);
-      } catch (err) {
-        console.error('Failed to fetch deal flow data:', err);
-      } finally {
+    const unsubscribe = onSnapshot(
+      doc(db, 'funders', user.uid),
+      async (docSnap) => {
+        if (docSnap.exists()) {
+          const funderDoc = { ...docSnap.data(), uid: docSnap.id } as FunderDoc;
+          setFunder(funderDoc);
+          
+          try {
+            const companies = await getCompaniesByStatus('ready');
+            setReadyStartups(companies);
+          } catch (err) {
+            console.error('Failed to fetch deal flow data:', err);
+          }
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Failed to fetch funder data:', err);
         setLoading(false);
       }
-    }
+    );
 
-    fetchData();
+    return () => unsubscribe();
   }, [user]);
 
   if (loading) {
@@ -51,8 +66,31 @@ export function FunderDashboard() {
     );
   }
 
+  // ── Pending Verification State ─────────────────────────────────────────────
+  if (funder && !funder.is_approved) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass rounded-3xl p-12 max-w-md text-center shadow-2xl border border-yellow-200 bg-white">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pending Verification</h2>
+          <p className="text-gray-500 mb-6">Your funder profile is currently being reviewed by an Administrator. You will be able to access the Deal Radar once verified.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   const totalPool = readyStartups.reduce((sum, s) => sum + (s.budget_needed || 0), 0);
   const topTier = readyStartups.filter(s => (s.ai_score ?? 0) > 80).length;
+
+  const formatCurrency = (val: number) => {
+    if (val === 0) return "$0";
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(1)}K`;
+    return `$${val}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -75,7 +113,7 @@ export function FunderDashboard() {
             <div className="relative z-10 flex justify-between items-start">
                <div>
                  <p className="font-bold opacity-80 uppercase text-xs tracking-wider mb-2">Total Opportunity Pool</p>
-                 <h2 className="text-7xl font-black">${(totalPool / 1000000).toFixed(1)}M</h2>
+                 <h2 className="text-7xl font-black">{formatCurrency(totalPool)}</h2>
                </div>
                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
                   <Target className="w-8 h-8 text-white" />
@@ -102,16 +140,18 @@ export function FunderDashboard() {
 
           <motion.div variants={bentoVariants} className="md:col-span-4 md:row-span-2 glass rounded-3xl p-10 bg-white shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
-                <Activity className="w-10 h-10 animate-pulse" />
+             <div className="relative z-10 flex flex-col items-center">
+               <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
+                  <Activity className="w-10 h-10 animate-pulse" />
+               </div>
+               <h2 className="text-3xl font-black mb-4">Start Sourcing Deals</h2>
+               <p className="text-gray-500 max-w-lg mb-8 text-lg">
+                 Our AI has curated a list of highly vetted, investment-ready startups that match your investment thesis. Enter the Deal Radar to review them one by one.
+               </p>
+               <Button onClick={() => navigate('/funder-matching')} size="lg" className="rounded-full shadow-2xl h-16 px-12 text-xl bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white hover:scale-105 transition-all">
+                 Open Deal Radar <ArrowRight className="w-6 h-6 ml-3" />
+               </Button>
              </div>
-             <h2 className="text-3xl font-black mb-4">Start Sourcing Deals</h2>
-             <p className="text-gray-500 max-w-lg mb-8 text-lg">
-               Our AI has curated a list of highly vetted, investment-ready startups that match your investment thesis. Enter the Deal Radar to review them one by one.
-             </p>
-             <Button onClick={() => navigate('/funder-matching')} size="lg" className="rounded-full shadow-2xl h-16 px-12 text-xl bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white hover:scale-105 transition-all">
-               Open Deal Radar <ArrowRight className="w-6 h-6 ml-3" />
-             </Button>
           </motion.div>
         </motion.div>
        </div>
