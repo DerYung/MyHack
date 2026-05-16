@@ -3,38 +3,75 @@ import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Briefcase, X, Sparkles, Building, BarChart, Rocket, Handshake } from 'lucide-react';
-import { mockStartups } from '../lib/mockData';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
+import { getCompaniesByStatus } from '../services/firestoreStartupService';
+import { createLinkage } from '../services/firestoreLinkageService';
+import { useAuth } from '../contexts/AuthContext';
+import { CompanyDoc } from '../types/firestore';
 
 export function FunderMatching() {
   const navigate = useNavigate();
-  // Simulate funder viewing ready startups
-  const [deals, setDeals] = useState(() => mockStartups.filter(s => s.status === 'ready' || s.aiScore));
+  const { user } = useAuth();
+  
+  const [deals, setDeals] = useState<CompanyDoc[]>([]);
   const [isSearching, setIsSearching] = useState(true);
-  const [matchedDeal, setMatchedDeal] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [matchedDeal, setMatchedDeal] = useState<CompanyDoc | null>(null);
 
-  // Simulated radar loading
   useEffect(() => {
-    const timer = setTimeout(() => setIsSearching(false), 1500);
-    return () => clearTimeout(timer);
+    async function loadDeals() {
+      try {
+        const companies = await getCompaniesByStatus('ready');
+        setDeals(companies);
+      } catch (err) {
+        toast.error("Failed to fetch deal flow");
+      } finally {
+        setTimeout(() => setIsSearching(false), 1500);
+      }
+    }
+    loadDeals();
   }, []);
 
-  const handleSwipe = (direction: 'left' | 'right', dealId: string) => {
-    const deal = deals.find(d => d.id === dealId);
-    
-    // Remove the current deal from the stack
-    setDeals(prev => prev.filter(d => d.id !== dealId));
+  const handleSwipe = async (direction: 'left' | 'right', dealUid: string) => {
+    if (isSubmitting) return;
+    const deal = deals.find(d => d.uid === dealUid);
+    if (!deal) return;
 
     if (direction === 'right') {
-      // It's a Match!
-      setMatchedDeal(deal);
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#22c55e', '#eab308', '#3b82f6'] // Green, Yellow, Blue for investment vibe
-      });
+      if (!user) {
+        toast.error("You must be logged in to match with startups");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        await createLinkage({
+          type: 'funder-matching',
+          mentor_uid: user.uid,
+          company_uid: deal.uid,
+          status: 'active'
+        });
+        
+        setMatchedDeal(deal);
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#22c55e', '#eab308', '#3b82f6'] // Green, Yellow, Blue for investment vibe
+        });
+        
+        // Remove from stack
+        setDeals(prev => prev.filter(d => d.uid !== dealUid));
+      } catch (err) {
+        toast.error("Failed to register interest");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Remove from stack without matching
+      setDeals(prev => prev.filter(d => d.uid !== dealUid));
     }
   };
 
@@ -85,16 +122,16 @@ export function FunderMatching() {
                <p className="text-sm text-gray-400 uppercase font-bold mb-1">Deal Parameters</p>
                <div className="flex justify-between items-center mb-2">
                  <span className="text-white">Seeking</span>
-                 <span className="font-bold text-green-400">${(matchedDeal.budgetNeeded / 1000).toFixed(0)}K</span>
+                 <span className="font-bold text-green-400">${(matchedDeal.budget_needed / 1000).toFixed(0)}K</span>
                </div>
                <div className="flex justify-between items-center">
                  <span className="text-white">AI Compatibility</span>
-                 <span className="font-bold text-blue-400">{matchedDeal.aiScore}/100</span>
+                 <span className="font-bold text-blue-400">{matchedDeal.ai_score || 85}/100</span>
                </div>
             </div>
 
             <div className="space-y-4">
-              <Button size="lg" className="w-full rounded-full h-14 text-lg bg-green-500 hover:bg-green-600 text-white border-none shadow-[0_0_20px_rgba(34,197,94,0.3)]" onClick={() => navigate(`/investor-brief/${matchedDeal.id}`)}>
+              <Button size="lg" className="w-full rounded-full h-14 text-lg bg-green-500 hover:bg-green-600 text-white border-none shadow-[0_0_20px_rgba(34,197,94,0.3)]" onClick={() => navigate(`/investor-brief/${matchedDeal.uid}`)}>
                 <BarChart className="w-5 h-5 mr-2" /> View Full Intelligence Brief
               </Button>
               <Button size="lg" variant="outline" className="w-full rounded-full h-14 text-lg border-white/30 text-white hover:bg-white/10" onClick={() => setMatchedDeal(null)}>
@@ -170,7 +207,7 @@ export function FunderMatching() {
                     <div className="h-[45%] bg-gradient-to-br from-green-500 to-blue-600 relative flex flex-col justify-end p-6 overflow-hidden">
                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
                        <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-1 shadow-lg border border-white/20">
-                          <Sparkles className="w-4 h-4 text-green-300" /> {deal.aiScore}% Match
+                          <Sparkles className="w-4 h-4 text-green-300" /> {deal.ai_score || 85}% Match
                        </div>
                        
                        <div className="relative z-10">
@@ -183,7 +220,7 @@ export function FunderMatching() {
                     
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex gap-2 mb-4">
-                        <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-none shadow-none">{deal.industry}</Badge>
+                        <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-none shadow-none">{deal.sector}</Badge>
                         <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none shadow-none">{deal.stage}</Badge>
                       </div>
 
@@ -195,11 +232,11 @@ export function FunderMatching() {
                          <div className="flex justify-between items-center">
                             <div>
                                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Seeking Investment</p>
-                               <p className="text-2xl font-black text-green-600">${(deal.budgetNeeded / 1000).toFixed(0)}K</p>
+                               <p className="text-2xl font-black text-green-600">${(deal.budget_needed / 1000).toFixed(0)}K</p>
                             </div>
                             <div className="text-right">
-                               <p className="text-xs font-bold text-gray-400 uppercase mb-1">Market Potential</p>
-                               <p className="text-lg font-bold text-gray-900 capitalize">{deal.marketPotential}</p>
+                               <p className="text-xs font-bold text-gray-400 uppercase mb-1">Market Goals</p>
+                               <p className="text-lg font-bold text-gray-900 capitalize truncate w-24" title={deal.market_goals}>{deal.market_goals ? "Verified" : "Pending"}</p>
                             </div>
                          </div>
                       </div>
@@ -218,14 +255,16 @@ export function FunderMatching() {
            <Button 
              variant="outline" 
              className="w-20 h-20 rounded-full border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 shadow-xl hover:scale-110 transition-all bg-white"
-             onClick={() => handleSwipe('left', deals[0].id)}
+             onClick={() => handleSwipe('left', deals[0].uid!)}
+             disabled={isSubmitting}
            >
              <X className="w-10 h-10" />
            </Button>
            <Button 
              variant="outline" 
              className="w-20 h-20 rounded-full border-2 border-green-100 text-green-500 hover:bg-green-50 hover:text-green-600 shadow-[0_10px_30px_rgba(34,197,94,0.3)] hover:scale-110 transition-all bg-white"
-             onClick={() => handleSwipe('right', deals[0].id)}
+             onClick={() => handleSwipe('right', deals[0].uid!)}
+             disabled={isSubmitting}
            >
              <Handshake className="w-10 h-10" />
            </Button>

@@ -35,8 +35,8 @@ export function MentorMatching() {
       try {
         const companyData = await getCompany(user.uid);
         if (!companyData) {
-          toast.error("Company profile not found");
-          navigate('/dashboard');
+          toast.error("Please submit your startup profile first.");
+          navigate('/submit-startup');
           return;
         }
         setStartup(companyData);
