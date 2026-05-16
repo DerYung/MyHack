@@ -14,20 +14,20 @@ import { Layout } from "./components/Layout";
 
 export const router = createBrowserRouter([
   {
+    path: "/",
+    Component: LandingPage,
+  },
+  {
+    path: "/login",
+    Component: AuthPage,
+  },
+  {
+    path: "/onboarding",
+    Component: OnboardingPage,
+  },
+  {
     Component: Layout,
     children: [
-      {
-        path: "/",
-        Component: LandingPage,
-      },
-      {
-        path: "/login",
-        Component: AuthPage,
-      },
-      {
-        path: "/onboarding",
-        Component: OnboardingPage,
-      },
       {
         path: "/dashboard",
         Component: DashboardRouter,
