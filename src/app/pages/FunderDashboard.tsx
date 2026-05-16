@@ -5,7 +5,8 @@ import { Target, CheckCircle, Users, Activity, ArrowRight, Loader2 } from 'lucid
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCompaniesByStatus } from '../services/firestoreStartupService';
-import type { CompanyDoc } from '../types/firestore';
+import { getFunder } from '../services/firestoreFunderService';
+import type { CompanyDoc, FunderDoc } from '../types/firestore';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,6 +22,7 @@ export function FunderDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [readyStartups, setReadyStartups] = useState<CompanyDoc[]>([]);
+  const [funder, setFunder] = useState<FunderDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,9 @@ export function FunderDashboard() {
       if (!user) { setLoading(false); return; }
 
       try {
+        const funderDoc = await getFunder(user.uid);
+        setFunder(funderDoc);
+        
         const companies = await getCompaniesByStatus('ready');
         setReadyStartups(companies);
       } catch (err) {
@@ -46,6 +51,21 @@ export function FunderDashboard() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
           <p className="text-lg font-medium text-gray-500">Loading Deal Flow...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Pending Verification State ─────────────────────────────────────────────
+  if (funder && !funder.is_approved) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass rounded-3xl p-12 max-w-md text-center shadow-2xl border border-yellow-200 bg-white">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pending Verification</h2>
+          <p className="text-gray-500 mb-6">Your funder profile is currently being reviewed by an Administrator. You will be able to access the Deal Radar once verified.</p>
         </motion.div>
       </div>
     );
@@ -102,16 +122,18 @@ export function FunderDashboard() {
 
           <motion.div variants={bentoVariants} className="md:col-span-4 md:row-span-2 glass rounded-3xl p-10 bg-white shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-             <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
-                <Activity className="w-10 h-10 animate-pulse" />
+             <div className="relative z-10 flex flex-col items-center">
+               <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
+                  <Activity className="w-10 h-10 animate-pulse" />
+               </div>
+               <h2 className="text-3xl font-black mb-4">Start Sourcing Deals</h2>
+               <p className="text-gray-500 max-w-lg mb-8 text-lg">
+                 Our AI has curated a list of highly vetted, investment-ready startups that match your investment thesis. Enter the Deal Radar to review them one by one.
+               </p>
+               <Button onClick={() => navigate('/funder-matching')} size="lg" className="rounded-full shadow-2xl h-16 px-12 text-xl bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white hover:scale-105 transition-all">
+                 Open Deal Radar <ArrowRight className="w-6 h-6 ml-3" />
+               </Button>
              </div>
-             <h2 className="text-3xl font-black mb-4">Start Sourcing Deals</h2>
-             <p className="text-gray-500 max-w-lg mb-8 text-lg">
-               Our AI has curated a list of highly vetted, investment-ready startups that match your investment thesis. Enter the Deal Radar to review them one by one.
-             </p>
-             <Button onClick={() => navigate('/funder-matching')} size="lg" className="rounded-full shadow-2xl h-16 px-12 text-xl bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white hover:scale-105 transition-all">
-               Open Deal Radar <ArrowRight className="w-6 h-6 ml-3" />
-             </Button>
           </motion.div>
         </motion.div>
        </div>

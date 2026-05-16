@@ -54,6 +54,12 @@ export function FunderMatching() {
           status: 'active'
         });
         
+        import('../services/firestoreStartupService').then(({ updateCompany }) => {
+           updateCompany(deal.uid, {
+             status: 'matched'
+           });
+        });
+        
         setMatchedDeal(deal);
         confetti({
           particleCount: 150,
@@ -176,7 +182,7 @@ export function FunderMatching() {
                 
                 return (
                   <motion.div
-                    key={deal.id}
+                    key={deal.uid}
                     className="absolute inset-0 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden border border-gray-100 flex flex-col"
                     style={{
                       zIndex: deals.length - index,
@@ -187,8 +193,8 @@ export function FunderMatching() {
                     dragElastic={1}
                     onDragEnd={(e, { offset, velocity }) => {
                       const swipe = offset.x;
-                      if (swipe > 100) handleSwipe('right', deal.id);
-                      else if (swipe < -100) handleSwipe('left', deal.id);
+                      if (swipe > 100) handleSwipe('right', deal.uid);
+                      else if (swipe < -100) handleSwipe('left', deal.uid);
                     }}
                   >
                     {/* Overlays for swipe feedback */}

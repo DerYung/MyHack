@@ -7,9 +7,10 @@ import { Users, ShieldCheck, TrendingUp, CheckCircle, Loader2, Activity } from '
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { getMentor } from '../services/firestoreMentorService';
 import { getLinkagesForMentor } from '../services/firestoreLinkageService';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
-import type { LinkageDoc, CompanyDoc } from '../types/firestore';
+import type { LinkageDoc, CompanyDoc, MentorDoc } from '../types/firestore';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,6 +30,7 @@ interface AssignedStartup {
 export function MentorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [mentor, setMentor] = useState<MentorDoc | null>(null);
   const [assigned, setAssigned] = useState<AssignedStartup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +40,9 @@ export function MentorDashboard() {
       if (!user) { setLoading(false); return; }
 
       try {
+        const mentorDoc = await getMentor(user.uid);
+        setMentor(mentorDoc);
+
         // Fetch all linkages where this mentor is assigned
         const linkages = await getLinkagesForMentor(user.uid);
 
@@ -114,6 +119,21 @@ export function MentorDashboard() {
     );
   }
 
+  // ── Pending Verification State ─────────────────────────────────────────────
+  if (mentor && !mentor.is_approved) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass rounded-3xl p-12 max-w-md text-center shadow-2xl border border-yellow-200 bg-white">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pending Verification</h2>
+          <p className="text-gray-500 mb-6">Your mentor profile is currently being reviewed by an Administrator. You will be able to access the Mentor Radar once verified.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Status badge helper ────────────────────────────────────────────────────
   const statusBadge = (status: CompanyDoc['status']) => {
     const map: Record<CompanyDoc['status'], { bg: string; text: string; label: string }> = {
@@ -144,6 +164,24 @@ export function MentorDashboard() {
           animate="visible"
           variants={containerVariants}
         >
+          {/* Sourcing Hub */}
+          <motion.div variants={bentoVariants} className="md:col-span-3 glass rounded-3xl p-8 bg-white shadow-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-left relative overflow-hidden group border border-gray-100">
+             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="flex items-center gap-6 relative z-10">
+               <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Activity className="w-8 h-8 animate-pulse" />
+               </div>
+               <div>
+                 <h2 className="text-2xl font-black mb-1">Find Startups to Mentor</h2>
+                 <p className="text-gray-500 max-w-md">
+                   Review startups that have requested mentorship and match with those that fit your expertise.
+                 </p>
+               </div>
+             </div>
+             <Button onClick={() => navigate('/mentor-matching')} size="lg" className="mt-6 sm:mt-0 rounded-full shadow-xl h-14 px-8 text-lg bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white hover:scale-105 transition-all relative z-10">
+               Open Mentor Radar
+             </Button>
+          </motion.div>
           {/* Stat: Total Assigned */}
           <motion.div variants={bentoVariants} className="glass rounded-3xl p-6 bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex flex-col justify-between shadow-xl">
             <Users className="w-10 h-10 opacity-80" />

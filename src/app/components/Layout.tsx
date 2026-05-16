@@ -10,9 +10,6 @@ export function Layout() {
 
   const navLinks = [
     { name: "Dashboard", path: "/dashboard" },
-    { name: "Submit Startup", path: "/submit-startup" },
-    { name: "Mentor Matching", path: "/mentor-matching" },
-    { name: "Funder Matching", path: "/funder-matching" },
   ];
 
   return (

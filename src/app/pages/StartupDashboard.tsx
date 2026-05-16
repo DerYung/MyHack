@@ -103,6 +103,21 @@ export function StartupDashboard() {
     );
   }
 
+  // ── Pending Verification State ─────────────────────────────────────────────
+  if (!company.is_approved) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass rounded-3xl p-12 max-w-md text-center shadow-2xl border border-yellow-200 bg-white">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pending Verification</h2>
+          <p className="text-gray-500 mb-6">Your startup profile has been submitted and is currently being reviewed by an Administrator. You will gain access to the ecosystem once verified.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Derived values ─────────────────────────────────────────────────────────
   const statusLabels: Record<CompanyDoc['status'], string> = {
     submitted: 'Submitted',
@@ -147,11 +162,16 @@ export function StartupDashboard() {
             <h1 className="text-3xl font-black mb-1">Your Workspace</h1>
             <p className="text-muted-foreground">Follow the guided steps to secure your funding.</p>
           </div>
-          {company.status === 'ready' && (
-            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none px-4 py-2 text-sm uppercase">
-               Investment Ready
-            </Badge>
-          )}
+          <div className="flex items-center gap-4">
+            {company.status === 'ready' && (
+              <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none px-4 py-2 text-sm uppercase">
+                 Investment Ready
+              </Badge>
+            )}
+            <Button variant="outline" onClick={() => navigate('/submit-startup')} className="rounded-full">
+              Edit Profile
+            </Button>
+          </div>
         </div>
 
         <motion.div 
@@ -185,9 +205,10 @@ export function StartupDashboard() {
              
              {company.status === 'submitted' && (
                <div>
-                 <h3 className="text-xl font-bold mb-4">Match with a Mentor</h3>
-                 <Button onClick={() => navigate('/mentor-matching')} className="w-full rounded-full bg-purple-600 hover:bg-purple-700 h-12">
-                   Open Mentor Radar <ArrowRight className="w-4 h-4 ml-2" />
+                 <h3 className="text-xl font-bold mb-2">Finding a Mentor</h3>
+                 <p className="text-sm text-gray-500 mb-3">Our AI is actively searching for the perfect mentor for you. Please wait.</p>
+                 <Button disabled className="w-full rounded-full bg-gray-200 text-gray-500 h-12">
+                   <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Matching in Progress...
                  </Button>
                </div>
              )}

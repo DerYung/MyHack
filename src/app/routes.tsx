@@ -10,6 +10,7 @@ import { NotFound } from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { LandingPage } from "./pages/LandingPage";
+import { InferenceEngine } from "./pages/InferenceEngine";
 
 import { Layout } from "./components/Layout";
 
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
       {
         path: "/admin",
         Component: AdminDashboard,
+      },
+      {
+        path: "/inference-engine",
+        Component: InferenceEngine,
       },
       {
         path: "*",
