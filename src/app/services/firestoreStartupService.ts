@@ -69,11 +69,16 @@ export async function getCompaniesByStatus(
 ): Promise<CompanyDoc[]> {
   const q = query(
     collection(db, COLLECTION),
-    where("status", "==", status),
-    orderBy("created_at", "desc")
+    where("status", "==", status)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), uid: d.id } as CompanyDoc));
+  const docs = snap.docs.map((d) => ({ ...d.data(), uid: d.id } as CompanyDoc));
+  // Sort in memory to avoid needing a Firestore composite index during the hackathon
+  return docs.sort((a, b) => {
+    const timeA = typeof a.created_at === 'number' ? a.created_at : (a.created_at?.toMillis?.() || 0);
+    const timeB = typeof b.created_at === 'number' ? b.created_at : (b.created_at?.toMillis?.() || 0);
+    return timeB - timeA;
+  });
 }
 
 /** Get companies assigned to a specific mentor */
