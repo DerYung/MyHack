@@ -1,10 +1,11 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const navLinks = [
@@ -60,7 +61,10 @@ export function Layout() {
                     </span>
                   </div>
                   <button
-                    onClick={() => logout()}
+                    onClick={async () => {
+                      await logout();
+                      navigate("/");
+                    }}
                     className="text-xs lg:text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors whitespace-nowrap"
                   >
                     Log Out
