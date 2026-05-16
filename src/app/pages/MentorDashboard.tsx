@@ -156,6 +156,15 @@ export function MentorDashboard() {
     return <Badge className={`${s.bg} ${s.text} hover:${s.bg} border-none`}>{s.label}</Badge>;
   };
 
+  // ── Currency Formatter ─────────────────────────────────────────────────────
+  const formatCurrency = (val: number) => {
+    if (val === 0) return "$0";
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(1)}K`;
+    return `$${val}`;
+  };
+
   // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -211,12 +220,12 @@ export function MentorDashboard() {
             </div>
           </motion.div>
 
-          {/* Stat: Portfolio Impact */}
+          {/* Stat: Advisory Pipeline */}
           <motion.div variants={bentoVariants} className="glass rounded-3xl p-6 bg-white border-orange-500/20 flex flex-col justify-between shadow-xl">
             <TrendingUp className="w-10 h-10 text-orange-500" />
             <div>
-              <p className="font-bold text-gray-400 uppercase text-xs tracking-wider">Portfolio Impact</p>
-              <h2 className="text-5xl font-black text-gray-900">${(totalBudget / 1000000).toFixed(1)}M</h2>
+              <p className="font-bold text-gray-400 uppercase text-xs tracking-wider">Advisory Pipeline</p>
+              <h2 className="text-5xl font-black text-gray-900">{formatCurrency(totalBudget)}</h2>
             </div>
           </motion.div>
 

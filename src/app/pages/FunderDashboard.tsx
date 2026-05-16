@@ -84,6 +84,14 @@ export function FunderDashboard() {
   const totalPool = readyStartups.reduce((sum, s) => sum + (s.budget_needed || 0), 0);
   const topTier = readyStartups.filter(s => (s.ai_score ?? 0) > 80).length;
 
+  const formatCurrency = (val: number) => {
+    if (val === 0) return "$0";
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(1)}K`;
+    return `$${val}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
        <div className="container mx-auto px-4 py-8">
@@ -105,7 +113,7 @@ export function FunderDashboard() {
             <div className="relative z-10 flex justify-between items-start">
                <div>
                  <p className="font-bold opacity-80 uppercase text-xs tracking-wider mb-2">Total Opportunity Pool</p>
-                 <h2 className="text-7xl font-black">${(totalPool / 1000000).toFixed(1)}M</h2>
+                 <h2 className="text-7xl font-black">{formatCurrency(totalPool)}</h2>
                </div>
                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
                   <Target className="w-8 h-8 text-white" />
