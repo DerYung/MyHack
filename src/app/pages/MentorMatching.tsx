@@ -2,51 +2,116 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Users, Award, Briefcase, X, Heart, Sparkles, MessageCircle } from 'lucide-react';
-import { mockStartups, mockMentors } from '../lib/mockData';
-import { matchMentors } from '../lib/matching';
+import { ArrowLeft, Users, X, Sparkles, MessageCircle, Briefcase, Handshake } from 'lucide-react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { getAllMentors } from '../services/firestoreMentorService';
+import { getCompany, updateCompany } from '../services/firestoreStartupService';
+import { createLinkage } from '../services/firestoreLinkageService';
+import type { MentorDoc, CompanyDoc } from '../types/firestore';
+
+interface ScoredMentor extends MentorDoc {
+  matchScore: number;
+}
 
 export function MentorMatching() {
   const navigate = useNavigate();
-  const startup = mockStartups[0];
-  const [mentors, setMentors] = useState(() => matchMentors(startup, mockMentors));
+  const { user } = useAuth();
+  const [startup, setStartup] = useState<CompanyDoc | null>(null);
+  const [mentors, setMentors] = useState<ScoredMentor[]>([]);
   const [isSearching, setIsSearching] = useState(true);
-  const [matchedMentor, setMatchedMentor] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [matchedMentor, setMatchedMentor] = useState<ScoredMentor | null>(null);
 
-  // Simulated radar loading
   useEffect(() => {
-    const timer = setTimeout(() => setIsSearching(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleSwipe = (direction: 'left' | 'right', mentorId: string) => {
-    const mentor = mentors.find(m => m.id === mentorId);
-    
-    // Remove the current mentor from the stack
-    setMentors(prev => prev.filter(m => m.id !== mentorId));
-
-    if (direction === 'right') {
-      // It's a Match!
-      setMatchedMentor(mentor);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#8b5cf6', '#ec4899', '#3b82f6']
-      });
-
-      // Update startup status to mentoring
-      const customStartupsStr = localStorage.getItem('customStartups');
-      if (customStartupsStr) {
-        const startups = JSON.parse(customStartupsStr);
-        if (startups.length > 0) {
-          startups[0].status = 'mentoring';
-          startups[0].mentorId = mentor?.id;
-          localStorage.setItem('customStartups', JSON.stringify(startups));
-        }
+    async function fetchData() {
+      if (!user) {
+        navigate('/');
+        return;
       }
+      
+      try {
+        const companyData = await getCompany(user.uid);
+        if (!companyData) {
+          toast.error("Please submit your startup profile first.");
+          navigate('/submit-startup');
+          return;
+        }
+        setStartup(companyData);
+
+        const allMentors = await getAllMentors();
+        
+        // Calculate Compatibility Score
+        const scored = allMentors.map(mentor => {
+          let score = 0;
+          if (mentor.industries.includes(companyData.sector)) score += 40;
+          
+          if (mentor.years_experience >= 10) score += 30;
+          else if (mentor.years_experience >= 5) score += 20;
+
+          if (mentor.startups_helped > 20) score += 30;
+          else if (mentor.startups_helped > 10) score += 20;
+          else score += 10;
+
+          return { ...mentor, matchScore: score };
+        }).sort((a, b) => b.matchScore - a.matchScore);
+
+        setMentors(scored);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        toast.error("Failed to load mentors");
+      } finally {
+        setTimeout(() => setIsSearching(false), 2000); // Simulate radar loading time
+      }
+    }
+
+    fetchData();
+  }, [user, navigate]);
+
+  const handleSwipe = async (direction: 'left' | 'right', mentorUid: string) => {
+    if (isSubmitting || !user) return;
+
+    const mentor = mentors.find(m => m.uid === mentorUid);
+    if (!mentor) return;
+    
+    if (direction === 'right') {
+      setIsSubmitting(true);
+      try {
+        // Create Linkage in Firestore
+        await createLinkage({
+          type: "mentor-matching",
+          mentor_uid: mentor.uid,
+          company_uid: user.uid,
+          status: "active",
+        });
+
+        // Update Startup status
+        await updateCompany(user.uid, {
+          status: "mentoring",
+          mentor_uid: mentor.uid,
+        });
+
+        setMatchedMentor(mentor);
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#8b5cf6', '#ec4899', '#3b82f6']
+        });
+        
+        // Remove from local stack
+        setMentors(prev => prev.filter(m => m.uid !== mentorUid));
+      } catch (error) {
+        console.error("Matching error:", error);
+        toast.error("Error saving match");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Pass
+      setMentors(prev => prev.filter(m => m.uid !== mentorUid));
     }
   };
 
@@ -74,32 +139,29 @@ export function MentorMatching() {
 
   if (matchedMentor) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-black to-emerald-900 flex items-center justify-center p-4">
          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full bg-white/10 backdrop-blur-2xl rounded-[3rem] p-8 border border-white/20 text-center shadow-2xl">
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 mb-8 italic">It's a Match!</h1>
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400 mb-8 italic">Match Complete!</h1>
             
             <div className="flex justify-center items-center gap-4 mb-8">
                <motion.div initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-24 h-24 rounded-full bg-blue-500 border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-xl">
                  ME
                </motion.div>
-               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: "spring" }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
-                 <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
+               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: "spring" }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                 <Handshake className="w-6 h-6 text-emerald-500" />
                </motion.div>
-               <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-xl">
-                 {matchedMentor.name[0]}
+               <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-xl">
+                 {matchedMentor.name ? matchedMentor.name[0].toUpperCase() : '?'}
                </motion.div>
             </div>
 
             <p className="text-white text-xl mb-8 leading-relaxed">
-              You and <span className="font-bold text-pink-300">{matchedMentor.name}</span> have a <span className="font-bold text-green-400">{matchedMentor.matchScore}%</span> compatibility score!
+              You and <span className="font-bold text-emerald-300">{matchedMentor.name}</span> have a <span className="font-bold text-green-400">{matchedMentor.matchScore}%</span> compatibility score!
             </p>
 
             <div className="space-y-4">
               <Button size="lg" className="w-full rounded-full h-14 text-lg bg-white text-purple-900 hover:bg-gray-100" onClick={() => navigate('/dashboard')}>
-                <MessageCircle className="w-5 h-5 mr-2" /> Send a Message
-              </Button>
-              <Button size="lg" variant="outline" className="w-full rounded-full h-14 text-lg border-white/30 text-white hover:bg-white/10" onClick={() => setMatchedMentor(null)}>
-                Keep Swiping
+                <MessageCircle className="w-5 h-5 mr-2" /> Return to Dashboard
               </Button>
             </div>
          </motion.div>
@@ -116,7 +178,7 @@ export function MentorMatching() {
         </Button>
         <div className="flex flex-col items-center">
            <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">Discover Mentors</h1>
-           <p className="text-xs font-bold text-gray-500 uppercase">For {startup.name}</p>
+           <p className="text-xs font-bold text-gray-500 uppercase">For {startup?.name}</p>
         </div>
         <div className="w-12 h-12" /> {/* Spacer */}
       </div>
@@ -130,7 +192,7 @@ export function MentorMatching() {
              </div>
              <h2 className="text-2xl font-bold text-gray-800 mb-2">No More Mentors</h2>
              <p className="text-gray-500 mb-6">You've seen all the matches in your area.</p>
-             <Button onClick={() => setMentors(matchMentors(startup, mockMentors))} className="rounded-full">Refresh List</Button>
+             <Button onClick={() => navigate('/dashboard')} className="rounded-full">Back to Dashboard</Button>
           </div>
         ) : (
           <div className="relative w-full max-w-sm aspect-[3/4]">
@@ -140,19 +202,19 @@ export function MentorMatching() {
                 
                 return (
                   <motion.div
-                    key={mentor.id}
+                    key={mentor.uid}
                     className="absolute inset-0 bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col"
                     style={{
                       zIndex: mentors.length - index,
                       ...(isTop ? { x, rotate, opacity } : { scale: 1 - index * 0.05, y: index * 20 })
                     }}
-                    drag={isTop ? "x" : false}
+                    drag={isTop && !isSubmitting ? "x" : false}
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={1}
                     onDragEnd={(e, { offset, velocity }) => {
                       const swipe = offset.x;
-                      if (swipe > 100) handleSwipe('right', mentor.id);
-                      else if (swipe < -100) handleSwipe('left', mentor.id);
+                      if (swipe > 100) handleSwipe('right', mentor.uid);
+                      else if (swipe < -100) handleSwipe('left', mentor.uid);
                     }}
                   >
                     {/* Overlays for swipe feedback */}
@@ -173,7 +235,7 @@ export function MentorMatching() {
                           <Sparkles className="w-4 h-4 text-yellow-300" /> {mentor.matchScore}% Match
                        </div>
                        <div className="w-32 h-32 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-5xl font-black text-purple-600">
-                          {mentor.name[0]}
+                          {mentor.name ? mentor.name[0].toUpperCase() : '?'}
                        </div>
                     </div>
                     
@@ -181,7 +243,10 @@ export function MentorMatching() {
                       <div className="mb-4">
                         <h2 className="text-3xl font-black text-gray-900">{mentor.name}</h2>
                         <div className="flex items-center text-gray-500 gap-1 font-medium mt-1">
-                          <Briefcase className="w-4 h-4" /> {mentor.yearsExperience} years experience
+                          <Briefcase className="w-4 h-4" /> {mentor.years_experience} years experience
+                        </div>
+                        <div className="text-sm text-gray-400 font-medium mt-1">
+                          {mentor.startups_helped} startups helped
                         </div>
                       </div>
 
@@ -221,17 +286,19 @@ export function MentorMatching() {
         <div className="p-6 flex justify-center gap-8 mb-4">
            <Button 
              variant="outline" 
-             className="w-20 h-20 rounded-full border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 shadow-xl hover:scale-110 transition-all bg-white"
-             onClick={() => handleSwipe('left', mentors[0].id)}
+             className="w-20 h-20 rounded-full border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 shadow-xl hover:scale-110 transition-all bg-white disabled:opacity-50"
+             onClick={() => handleSwipe('left', mentors[0].uid)}
+             disabled={isSubmitting}
            >
              <X className="w-10 h-10" />
            </Button>
            <Button 
              variant="outline" 
-             className="w-20 h-20 rounded-full border-2 border-green-100 text-green-500 hover:bg-green-50 hover:text-green-600 shadow-xl hover:scale-110 transition-all bg-white"
-             onClick={() => handleSwipe('right', mentors[0].id)}
+             className="w-20 h-20 rounded-full border-2 border-green-100 text-green-500 hover:bg-green-50 hover:text-green-600 shadow-xl hover:scale-110 transition-all bg-white disabled:opacity-50"
+             onClick={() => handleSwipe('right', mentors[0].uid)}
+             disabled={isSubmitting}
            >
-             <Heart className="w-10 h-10 fill-current" />
+             <Handshake className="w-10 h-10" />
            </Button>
         </div>
       )}

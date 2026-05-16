@@ -15,10 +15,7 @@ export function LandingPage() {
   const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   const handleGetStarted = () => {
-    if (selectedRole) {
-      localStorage.setItem('userRole', selectedRole);
-      navigate('/dashboard');
-    }
+    navigate('/login');
   };
 
   return (
@@ -78,16 +75,15 @@ export function LandingPage() {
         </div>
 
         <div className="h-24 mt-8 flex justify-center items-start">
-          {selectedRole && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-              <Button onClick={handleGetStarted} size="lg" className="h-16 px-12 text-xl rounded-full bg-foreground text-background hover:bg-foreground/90 shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300">
-                {selectedRole === 'startup' && "Launch Your Project"}
-                {selectedRole === 'mentor' && "Enter Mentor Station"}
-                {selectedRole === 'funder' && "Access Deal Flow"}
-                <ArrowRight className="ml-3 w-6 h-6" />
-              </Button>
-            </motion.div>
-          )}
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+            <Button onClick={handleGetStarted} size="lg" className="h-16 px-12 text-xl rounded-full bg-foreground text-background hover:bg-foreground/90 shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300">
+              {selectedRole === 'startup' && "Launch Your Project"}
+              {selectedRole === 'mentor' && "Enter Mentor Station"}
+              {selectedRole === 'funder' && "Access Deal Flow"}
+              {!selectedRole && "Get Started"}
+              <ArrowRight className="ml-3 w-6 h-6" />
+            </Button>
+          </motion.div>
         </div>
         
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
