@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Briefcase, X, Heart, Sparkles, Building, BarChart, Rocket } from 'lucide-react';
+import { ArrowLeft, Briefcase, X, Sparkles, Building, BarChart, Rocket, Handshake } from 'lucide-react';
 import { mockStartups } from '../lib/mockData';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -71,7 +71,7 @@ export function FunderMatching() {
                  FUND
                </motion.div>
                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: "spring" }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.8)]">
-                 <Heart className="w-6 h-6 text-green-500 fill-green-500" />
+                 <Handshake className="w-6 h-6 text-green-500" />
                </motion.div>
                <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-green-500 border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-xl">
                  <Rocket className="w-10 h-10 text-white" />
@@ -227,7 +227,7 @@ export function FunderMatching() {
              className="w-20 h-20 rounded-full border-2 border-green-100 text-green-500 hover:bg-green-50 hover:text-green-600 shadow-[0_10px_30px_rgba(34,197,94,0.3)] hover:scale-110 transition-all bg-white"
              onClick={() => handleSwipe('right', deals[0].id)}
            >
-             <Heart className="w-10 h-10 fill-current" />
+             <Handshake className="w-10 h-10" />
            </Button>
         </div>
       )}
