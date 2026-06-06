@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
-import { Target, CheckCircle, Users, Activity, ArrowRight, Loader2 } from 'lucide-react';
+import { Target, CheckCircle, Users, Activity, ArrowRight, Loader2, Undo2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
-import { getCompaniesByStatus } from '../services/firestoreStartupService';
+import { getCompaniesByStatus, updateCompany, getCompany } from '../services/firestoreStartupService';
 import { getFunder } from '../services/firestoreFunderService';
-import type { CompanyDoc, FunderDoc } from '../types/firestore';
+import { getLinkagesForFunder, updateLinkage } from '../services/firestoreLinkageService';
+import { EcosystemGraph } from '../components/EcosystemGraph';
+import type { CompanyDoc, FunderDoc, LinkageDoc } from '../types/firestore';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { toast } from 'sonner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,6 +28,8 @@ export function FunderDashboard() {
   const { user } = useAuth();
   const [readyStartups, setReadyStartups] = useState<CompanyDoc[]>([]);
   const [funder, setFunder] = useState<FunderDoc | null>(null);
+  const [activeDeals, setActiveDeals] = useState<{ linkage: LinkageDoc; company: CompanyDoc }[]>([]);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,8 +43,20 @@ export function FunderDashboard() {
           setFunder(funderDoc);
           
           try {
-            const companies = await getCompaniesByStatus('ready');
+            const [companies, linkages] = await Promise.all([
+              getCompaniesByStatus('ready'),
+              getLinkagesForFunder(docSnap.id),
+            ]);
             setReadyStartups(companies);
+
+            const activeLinkages = linkages.filter(l => l.status === 'active');
+            const deals = await Promise.all(
+              activeLinkages.map(async l => {
+                const company = await getCompany(l.company_uid);
+                return company ? { linkage: l, company } : null;
+              })
+            );
+            setActiveDeals(deals.filter(Boolean) as { linkage: LinkageDoc; company: CompanyDoc }[]);
           } catch (err) {
             console.error('Failed to fetch deal flow data:', err);
           }
@@ -80,6 +97,20 @@ export function FunderDashboard() {
       </div>
     );
   }
+
+  const handleWithdraw = async (linkageId: string, companyUid: string) => {
+    setWithdrawing(linkageId);
+    try {
+      await updateLinkage(linkageId, { status: 'rejected' });
+      await updateCompany(companyUid, { status: 'ready' });
+      setActiveDeals(prev => prev.filter(d => d.linkage.id !== linkageId));
+      toast.success('Interest withdrawn — startup returned to deal flow');
+    } catch {
+      toast.error('Failed to withdraw interest');
+    } finally {
+      setWithdrawing(null);
+    }
+  };
 
   const totalPool = readyStartups.reduce((sum, s) => sum + (s.budget_needed || 0), 0);
   const topTier = readyStartups.filter(s => (s.ai_score ?? 0) > 80).length;
@@ -154,6 +185,56 @@ export function FunderDashboard() {
              </div>
           </motion.div>
         </motion.div>
+
+        {/* Active Deals — withdraw section */}
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-gray-900">My Active Deals</h2>
+            <span className="text-sm text-gray-400">{activeDeals.length} deal{activeDeals.length !== 1 ? 's' : ''} accepted</span>
+          </div>
+
+          {activeDeals.length === 0 ? (
+            <div className="flex items-center gap-4 p-6 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
+              <Undo2 className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">No active deals yet. Once you accept a deal in the Deal Radar, it appears here — with a <span className="font-semibold">Withdraw</span> button to undo it.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {activeDeals.map(({ linkage, company }) => (
+                <motion.div
+                  key={linkage.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600">
+                      <Activity className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{company.name}</p>
+                      <p className="text-sm text-gray-400">{company.sector} · {company.stage} · ${(company.budget_needed / 1000).toFixed(0)}K</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleWithdraw(linkage.id, company.uid)}
+                    disabled={withdrawing === linkage.id}
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                  >
+                    {withdrawing === linkage.id
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Undo2 className="w-4 h-4" />}
+                    Withdraw
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {user && <EcosystemGraph uid={user.uid} role="Funder" />}
        </div>
     </div>
   );

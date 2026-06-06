@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ArrowLeft, Briefcase, X, Sparkles, Building, BarChart, Rocket, Handshake } from 'lucide-react';
+import { ArrowLeft, Briefcase, X, Sparkles, BarChart, Rocket, Handshake, Undo2, Loader2 } from 'lucide-react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
-import { getCompaniesByStatus } from '../services/firestoreStartupService';
-import { createLinkage } from '../services/firestoreLinkageService';
+import { getCompaniesByStatus, updateCompany } from '../services/firestoreStartupService';
+import { createLinkage, updateLinkage } from '../services/firestoreLinkageService';
 import { useAuth } from '../contexts/AuthContext';
 import { CompanyDoc } from '../types/firestore';
 
@@ -18,7 +18,9 @@ export function FunderMatching() {
   const [deals, setDeals] = useState<CompanyDoc[]>([]);
   const [isSearching, setIsSearching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
   const [matchedDeal, setMatchedDeal] = useState<CompanyDoc | null>(null);
+  const [lastLinkageId, setLastLinkageId] = useState<string | null>(null);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const toggleFlip = (uid: string) => {
@@ -28,8 +30,18 @@ export function FunderMatching() {
   useEffect(() => {
     async function loadDeals() {
       try {
-        const companies = await getCompaniesByStatus('ready');
-        setDeals(companies);
+        const [ready, matched] = await Promise.all([
+          getCompaniesByStatus('ready'),
+          getCompaniesByStatus('matched'),
+        ]);
+        // Merge, deduplicate by uid, sort by ai_score descending
+        const seen = new Set<string>();
+        const merged = [...ready, ...matched].filter(c => {
+          if (seen.has(c.uid)) return false;
+          seen.add(c.uid);
+          return true;
+        }).sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0));
+        setDeals(merged);
       } catch (err) {
         toast.error("Failed to fetch deal flow");
       } finally {
@@ -52,19 +64,18 @@ export function FunderMatching() {
 
       setIsSubmitting(true);
       try {
-        await createLinkage({
-          type: 'funder-matching',
-          mentor_uid: user.uid,
+        const linkageId = await createLinkage({
+          type: 'funder-syndication',
+          funder_uid: user.uid,
           company_uid: deal.uid,
           status: 'active'
         });
-        
+
         import('../services/firestoreStartupService').then(({ updateCompany }) => {
-           updateCompany(deal.uid, {
-             status: 'matched'
-           });
+          updateCompany(deal.uid, { status: 'matched' });
         });
-        
+
+        setLastLinkageId(linkageId);
         setMatchedDeal(deal);
         confetti({
           particleCount: 150,
@@ -83,6 +94,24 @@ export function FunderMatching() {
     } else {
       // Remove from stack without matching
       setDeals(prev => prev.filter(d => d.uid !== dealUid));
+    }
+  };
+
+  const handleUndoMatch = async () => {
+    if (!lastLinkageId || !matchedDeal) return;
+    setIsUndoing(true);
+    try {
+      await updateLinkage(lastLinkageId, { status: 'rejected' });
+      await updateCompany(matchedDeal.uid, { status: 'ready' });
+      // Put the deal back at the front of the stack
+      setDeals(prev => [matchedDeal, ...prev]);
+      setMatchedDeal(null);
+      setLastLinkageId(null);
+      toast.success('Match undone — deal returned to your stack');
+    } catch {
+      toast.error('Failed to undo match');
+    } finally {
+      setIsUndoing(false);
     }
   };
 
@@ -147,6 +176,16 @@ export function FunderMatching() {
               </Button>
               <Button size="lg" variant="outline" className="w-full rounded-full h-14 text-lg border-white/30 text-white hover:bg-white/10" onClick={() => setMatchedDeal(null)}>
                 Review More Deals
+              </Button>
+              <Button
+                size="lg"
+                variant="ghost"
+                className="w-full rounded-full h-12 text-sm text-white/50 hover:text-white/80 hover:bg-white/5"
+                onClick={handleUndoMatch}
+                disabled={isUndoing}
+              >
+                {isUndoing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Undo2 className="w-4 h-4 mr-2" />}
+                Undo this match
               </Button>
             </div>
          </motion.div>
