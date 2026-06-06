@@ -11,6 +11,7 @@ import { getMentor } from '../services/firestoreMentorService';
 import { getLinkagesForMentor } from '../services/firestoreLinkageService';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
 import type { LinkageDoc, CompanyDoc, MentorDoc } from '../types/firestore';
+import { EcosystemGraph } from '../components/EcosystemGraph';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -295,6 +296,8 @@ export function MentorDashboard() {
             )}
           </motion.div>
         </motion.div>
+
+        {user && <EcosystemGraph uid={user.uid} role="Mentor" />}
       </div>
     </div>
   );
