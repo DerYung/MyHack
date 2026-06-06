@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Check, Users, Handshake, Loader2, Rocket, Briefcase, Activity } from 'lucide-react';
+import { Shield, Check, Users, Handshake, Loader2, Rocket, Briefcase, Activity, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllCompanies, updateCompany } from '../services/firestoreStartupService';
+import { getAllCompanies, updateCompany, archiveCompany, unarchiveCompany, archiveAllMatchedCompanies } from '../services/firestoreStartupService';
 import { getAllMentors, updateMentor } from '../services/firestoreMentorService';
 import { getAllFunders, updateFunder } from '../services/firestoreFunderService';
 import { getAllLinkages } from '../services/firestoreLinkageService';
 import { Button } from '../components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
+import type { CompanyDoc } from '../types/firestore';
 import { toast } from 'sonner';
 
 interface PendingUser {
@@ -20,9 +22,12 @@ export function AdminDashboard() {
   const { user } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [linkages, setLinkages] = useState<any[]>([]);
+  const [matchedCompanies, setMatchedCompanies] = useState<CompanyDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'verification' | 'ecosystem'>('verification');
+  const [archivingAll, setArchivingAll] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [activeTab, setActiveTab] = useState<'verification' | 'ecosystem' | 'archive'>('verification');
 
   useEffect(() => {
     async function loadData() {
@@ -37,6 +42,8 @@ export function AdminDashboard() {
         companies.forEach(c => {
           if (!c.is_approved) pending.push({ uid: c.uid, type: 'startup', name: c.name, details: `${c.sector} • ${c.stage}` });
         });
+
+        setMatchedCompanies(companies.filter(c => c.status === 'matched'));
         mentors.forEach(m => {
           if (!m.is_approved) pending.push({ uid: m.uid, type: 'mentor', name: m.name, details: `${(m.industries || []).join(', ')} • ${m.years_experience}y exp` });
         });
@@ -86,6 +93,45 @@ export function AdminDashboard() {
     }
   };
 
+  const handleArchive = async (uid: string) => {
+    setProcessing(uid);
+    try {
+      await archiveCompany(uid);
+      setMatchedCompanies(prev => prev.map(c => c.uid === uid ? { ...c, archived: true } : c));
+      toast.success('Startup archived successfully');
+    } catch {
+      toast.error('Failed to archive startup');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleUnarchive = async (uid: string) => {
+    setProcessing(uid);
+    try {
+      await unarchiveCompany(uid);
+      setMatchedCompanies(prev => prev.map(c => c.uid === uid ? { ...c, archived: false } : c));
+      toast.success('Startup restored successfully');
+    } catch {
+      toast.error('Failed to restore startup');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleArchiveAll = async () => {
+    setArchivingAll(true);
+    try {
+      const count = await archiveAllMatchedCompanies();
+      setMatchedCompanies(prev => prev.map(c => ({ ...c, archived: true })));
+      toast.success(`${count} matched startup${count !== 1 ? 's' : ''} archived`);
+    } catch {
+      toast.error('Failed to archive matched startups');
+    } finally {
+      setArchivingAll(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
@@ -121,11 +167,17 @@ export function AdminDashboard() {
              >
                <Check className="w-5 h-5" /> Pending Verification <span className="bg-emerald-100 text-emerald-700 text-xs py-0.5 px-2 rounded-full ml-1">{pendingUsers.length}</span>
              </button>
-             <button 
+             <button
                className={`text-lg font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeTab === 'ecosystem' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}
                onClick={() => setActiveTab('ecosystem')}
              >
                <Activity className="w-5 h-5" /> Ecosystem Linkages <span className="bg-blue-100 text-blue-700 text-xs py-0.5 px-2 rounded-full ml-1">{linkages.length}</span>
+             </button>
+             <button
+               className={`text-lg font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeTab === 'archive' ? 'bg-teal-50 text-teal-700' : 'text-gray-500 hover:bg-gray-50'}`}
+               onClick={() => setActiveTab('archive')}
+             >
+               <Archive className="w-5 h-5" /> Matched Startups <span className="bg-teal-100 text-teal-700 text-xs py-0.5 px-2 rounded-full ml-1">{matchedCompanies.filter(c => !c.archived).length}</span>
              </button>
           </div>
 
@@ -219,6 +271,140 @@ export function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'archive' && (
+            <div>
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {matchedCompanies.filter(c => !c.archived).length} active matched &nbsp;·&nbsp;
+                    {matchedCompanies.filter(c => c.archived).length} archived
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowArchived(v => !v)}
+                    className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    {showArchived ? 'Hide archived' : 'Show archived'}
+                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        disabled={archivingAll || matchedCompanies.filter(c => !c.archived).length === 0}
+                        className="flex items-center gap-2"
+                      >
+                        {archivingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        Archive All Matched
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Archive all matched startups?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will archive {matchedCompanies.filter(c => !c.archived).length} matched startup{matchedCompanies.filter(c => !c.archived).length !== 1 ? 's' : ''}.
+                          They will be hidden from all dashboards but can be restored individually. This action is reversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleArchiveAll} className="bg-red-600 hover:bg-red-700">
+                          Archive All
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              {/* Active matched startups */}
+              <div className="grid grid-cols-1 gap-4">
+                <AnimatePresence>
+                  {matchedCompanies.filter(c => !c.archived).map(c => (
+                    <motion.div
+                      key={c.uid}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="flex items-center justify-between p-6 rounded-2xl border border-teal-100 bg-teal-50/40 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center text-white">
+                          <Rocket className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-teal-600 uppercase tracking-wider mb-1">Matched Startup</p>
+                          <h3 className="text-xl font-bold text-gray-900">{c.name}</h3>
+                          <p className="text-sm text-gray-500">{c.sector} · {c.stage} · {c.region}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleArchive(c.uid)}
+                        disabled={processing === c.uid}
+                        className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        {processing === c.uid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                        Archive
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {matchedCompanies.filter(c => !c.archived).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Archive className="w-10 h-10 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-1">No matched startups</h3>
+                    <p className="text-gray-400">All matched startups have been archived.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Archived startups */}
+              {showArchived && matchedCompanies.filter(c => c.archived).length > 0 && (
+                <div className="mt-8">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Archived</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <AnimatePresence>
+                      {matchedCompanies.filter(c => c.archived).map(c => (
+                        <motion.div
+                          key={c.uid}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex items-center justify-between p-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50 opacity-70"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-500">
+                              <Rocket className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-600">{c.name}</h3>
+                              <p className="text-sm text-gray-400">{c.sector} · {c.stage}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnarchive(c.uid)}
+                            disabled={processing === c.uid}
+                            className="flex items-center gap-2 text-teal-600 hover:bg-teal-50"
+                          >
+                            {processing === c.uid ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                            Restore
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
               )}
             </div>
