@@ -13,6 +13,9 @@ export {
   getAllCompanies,
   getCompaniesByStatus,
   getCompaniesByMentor,
+  archiveCompany,
+  unarchiveCompany,
+  archiveAllMatchedCompanies,
 } from "./firestoreStartupService";
 
 // DS2 — Mentors
