@@ -23,15 +23,15 @@ export function LandingPage() {
       
       {/* --- Organic Ambient Backgrounds --- */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-primary/20 blur-[140px] rounded-[40%_60%_70%_30%/40%_50%_60%_50%]" 
+          className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-teal-400/20 blur-[140px] rounded-[40%_60%_70%_30%/40%_50%_60%_50%]"
         />
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] right-[-20%] w-[60vw] h-[60vw] bg-secondary/10 blur-[160px] rounded-[60%_40%_30%_70%/50%_40%_60%_50%]" 
+          className="absolute bottom-[-10%] right-[-20%] w-[60vw] h-[60vw] bg-cyan-400/10 blur-[160px] rounded-[60%_40%_30%_70%/50%_40%_60%_50%]"
         />
       </div>
 
@@ -39,13 +39,13 @@ export function LandingPage() {
       <motion.div style={{ y: yHero, opacity: opacityHero }} className="relative z-10 min-h-screen flex flex-col justify-center items-center px-4 pt-20">
         <Badge className="mb-8 px-5 py-2 text-sm font-bold shadow-2xl shadow-primary/30 border border-white/20 backdrop-blur-md">
           <Sparkles className="w-4 h-4 mr-2" />
-          Beyond the Template. Built for Humans.
+          Startups · Mentors · Funders — Connected by AI
         </Badge>
-        
+
         <h1 className="text-6xl md:text-8xl font-black text-center tracking-tighter leading-tight max-w-5xl mb-8">
-          The Ecosystem <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-br from-primary via-secondary to-orange-400">
-            Intelligence Engine
+          The Ecosystem That<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-br from-teal-500 via-cyan-500 to-sky-400">
+            Links You Forward
           </span>
         </h1>
         
@@ -105,7 +105,7 @@ export function LandingPage() {
           className="flex flex-col lg:flex-row items-center gap-16"
         >
           <div className="lg:w-1/2 relative">
-            <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full" />
+            <div className="absolute inset-0 bg-teal-400/20 blur-[100px] rounded-full" />
             <div className="relative glass p-8 rounded-[40px] border border-white/20 shadow-2xl">
               <div className="flex justify-between items-center mb-8">
                 <div className="w-12 h-4 bg-gray-200 rounded-full" />
@@ -113,12 +113,12 @@ export function LandingPage() {
               </div>
               <div className="space-y-6">
                 <div className="h-16 bg-white/50 rounded-2xl border border-white/40 flex items-center px-4 gap-4">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Rocket className="w-4 h-4 text-blue-600"/></div>
-                  <div className="h-4 w-1/2 bg-blue-100 rounded-full" />
+                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center"><Rocket className="w-4 h-4 text-teal-600"/></div>
+                  <div className="h-4 w-1/2 bg-teal-100 rounded-full" />
                 </div>
                 <div className="h-16 bg-white/50 rounded-2xl border border-white/40 flex items-center px-4 gap-4">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center"><BrainCircuit className="w-4 h-4 text-purple-600"/></div>
-                  <div className="h-4 w-2/3 bg-purple-100 rounded-full" />
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center"><BrainCircuit className="w-4 h-4 text-cyan-600"/></div>
+                  <div className="h-4 w-2/3 bg-cyan-100 rounded-full" />
                 </div>
                 <div className="h-16 bg-gradient-vibrant rounded-2xl flex items-center px-4 gap-4 shadow-lg text-white font-bold">
                   <Sparkles className="w-5 h-5" /> Idea Refined & Processed
@@ -127,7 +127,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="lg:w-1/2 space-y-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-2">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-700 mb-2">
               <span className="text-2xl font-black">01</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Idea Ingestion & Refinement</h2>
@@ -146,7 +146,7 @@ export function LandingPage() {
           className="flex flex-col-reverse lg:flex-row items-center gap-16"
         >
           <div className="lg:w-1/2 space-y-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-600 mb-2">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-100 text-cyan-700 mb-2">
               <span className="text-2xl font-black">02</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Dynamic Mentor Matching</h2>
@@ -155,11 +155,11 @@ export function LandingPage() {
             </p>
           </div>
           <div className="lg:w-1/2 relative h-[400px] w-full">
-             <div className="absolute inset-0 bg-purple-500/20 blur-[100px] rounded-full" />
+             <div className="absolute inset-0 bg-teal-400/20 blur-[100px] rounded-full" />
              {/* Interactive Node Graph Simulation */}
              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: "linear" }} className="w-64 h-64 border border-purple-500/30 rounded-full absolute" />
-                <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="w-96 h-96 border border-primary/20 rounded-full absolute" />
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: "linear" }} className="w-64 h-64 border border-teal-500/30 rounded-full absolute" />
+                <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="w-96 h-96 border border-cyan-400/20 rounded-full absolute" />
                 
                 <div className="absolute w-20 h-20 bg-white shadow-2xl rounded-2xl z-20 flex items-center justify-center border-2 border-primary">
                   <Rocket className="w-8 h-8 text-primary" />
@@ -167,9 +167,9 @@ export function LandingPage() {
                 
                 {/* Floating Mentor Nodes */}
                 {[
-                  { x: -120, y: -80, icon: Users, color: "text-blue-500", bg: "bg-blue-100" },
-                  { x: 120, y: -60, icon: Users, color: "text-green-500", bg: "bg-green-100" },
-                  { x: 0, y: 140, icon: Users, color: "text-purple-500", bg: "bg-purple-100" },
+                  { x: -120, y: -80, icon: Users, color: "text-teal-600", bg: "bg-teal-100" },
+                  { x: 120, y: -60, icon: Users, color: "text-cyan-600", bg: "bg-cyan-100" },
+                  { x: 0, y: 140, icon: Users, color: "text-sky-600", bg: "bg-sky-100" },
                 ].map((node, i) => (
                   <motion.div 
                     key={i}
@@ -183,8 +183,8 @@ export function LandingPage() {
                         <line x1="50%" y1="50%" x2="50%" y2="-80px" stroke="url(#gradient)" strokeWidth="3" strokeDasharray="5,5" className="animate-pulse" />
                         <defs>
                           <linearGradient id="gradient">
-                            <stop offset="0%" stopColor="#8b5cf6" />
-                            <stop offset="100%" stopColor="#ec4899" />
+                            <stop offset="0%" stopColor="#0d9488" />
+                            <stop offset="100%" stopColor="#06b6d4" />
                           </linearGradient>
                         </defs>
                       </svg>
@@ -204,21 +204,21 @@ export function LandingPage() {
           className="flex flex-col lg:flex-row items-center gap-16"
         >
           <div className="lg:w-1/2 relative perspective-1000">
-            <div className="absolute inset-0 bg-orange-500/20 blur-[100px] rounded-full" />
+            <div className="absolute inset-0 bg-cyan-500/20 blur-[100px] rounded-full" />
             <motion.div 
               whileHover={{ rotateY: 5, rotateX: 5, scale: 1.05 }}
               className="relative glass p-8 rounded-[30px] border-t border-l border-white/40 shadow-2xl origin-left"
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg mb-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center shadow-lg mb-8">
                 <FileText className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold mb-4">Project Phoenix | Brief</h3>
               <div className="space-y-4 mb-6">
                 <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                   <motion.div initial={{ width: 0 }} whileInView={{ width: "85%" }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-orange-500" />
+                   <motion.div initial={{ width: 0 }} whileInView={{ width: "85%" }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-teal-500" />
                 </div>
                 <div className="h-2 w-3/4 bg-gray-200 rounded-full overflow-hidden">
-                   <motion.div initial={{ width: 0 }} whileInView={{ width: "60%" }} transition={{ duration: 1.5, delay: 0.7 }} className="h-full bg-red-500" />
+                   <motion.div initial={{ width: 0 }} whileInView={{ width: "60%" }} transition={{ duration: 1.5, delay: 0.7 }} className="h-full bg-cyan-500" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -234,7 +234,7 @@ export function LandingPage() {
             </motion.div>
           </div>
           <div className="lg:w-1/2 space-y-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 text-orange-600 mb-2">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 text-sky-700 mb-2">
               <span className="text-2xl font-black">03</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Automated Intelligence Briefs</h2>
@@ -253,7 +253,7 @@ export function LandingPage() {
           className="flex flex-col-reverse lg:flex-row items-center gap-16"
         >
           <div className="lg:w-1/2 space-y-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-2">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-700 mb-2">
               <span className="text-2xl font-black">04</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Co-Investment Syndication</h2>
@@ -262,7 +262,7 @@ export function LandingPage() {
             </p>
           </div>
           <div className="lg:w-1/2 relative">
-             <div className="absolute inset-0 bg-green-500/20 blur-[100px] rounded-full" />
+             <div className="absolute inset-0 bg-sky-400/20 blur-[100px] rounded-full" />
              <div className="relative grid grid-cols-2 gap-4">
                 <motion.div whileHover={{ y: -10 }} className="p-6 glass rounded-3xl border border-white/20 col-span-2 flex items-center justify-between">
                    <div className="flex items-center gap-4">
@@ -272,21 +272,21 @@ export function LandingPage() {
                         <p className="text-sm text-gray-500">Needs $500K</p>
                       </div>
                    </div>
-                   <Badge className="bg-green-100 text-green-700">Ready</Badge>
+                   <Badge className="bg-teal-100 text-teal-700">Ready</Badge>
                 </motion.div>
                 
-                <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-white rounded-3xl border-2 border-green-500 shadow-xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-16 h-16 bg-green-500 rounded-bl-full" />
+                <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-white rounded-3xl border-2 border-teal-500 shadow-xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500 rounded-bl-full" />
                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-white" />
-                   <TrendingUp className="w-8 h-8 text-green-500 mb-4" />
+                   <TrendingUp className="w-8 h-8 text-teal-500 mb-4" />
                    <p className="font-bold">Lead Investor</p>
                    <p className="text-sm text-gray-500">Committing $300K</p>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.05 }} className="p-6 bg-white rounded-3xl border border-gray-200 shadow-lg opacity-80 border-dashed border-2">
-                   <Network className="w-8 h-8 text-blue-500 mb-4" />
+                   <Network className="w-8 h-8 text-cyan-500 mb-4" />
                    <p className="font-bold">Co-Investor Match</p>
-                   <p className="text-sm text-blue-500 font-medium">Fills $200K Gap</p>
+                   <p className="text-sm text-cyan-600 font-medium">Fills $200K Gap</p>
                 </motion.div>
              </div>
           </div>
