@@ -46,16 +46,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS -- allow the Vite dev server
+# CORS -- the frontend calls this API without credentials (no cookies /
+# Authorization sent with credentials: 'include'), so a wildcard origin is
+# safe and avoids the spec conflict that "*" + allow_credentials=True causes.
+# Works for the Vite dev server and any deployed frontend URL.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",    # Vite default
-        "http://localhost:3000",    # Alternative
-        "http://127.0.0.1:5173",
-        "*",                        # Allow production frontend
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
