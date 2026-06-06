@@ -1,32 +1,58 @@
 services:
-  # The Python FastAPI Backend
+  # ── Python FastAPI Backend ──────────────────────────────────────
   - type: web
     name: myhack-backend
     env: python
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      # Gemini API key — set the value in the Render dashboard (kept out of git)
       - key: GOOGLE_API_KEY
         sync: false
+      # Path to the service-account JSON. Upload the file under
+      # Render → this service → Environment → Secret Files, named
+      # "service-account.json", so it lands at the path below.
       - key: GOOGLE_APPLICATION_CREDENTIALS
         value: "/etc/secrets/service-account.json"
+      # Firestore targeting (match backend/config.py defaults)
+      - key: GOOGLE_CLOUD_PROJECT
+        value: "myhack-bf3ce"
+      - key: FIRESTORE_DATABASE
+        value: "myhack"
 
-  # The React/Vite Frontend
+  # ── React / Vite Frontend (static site) ─────────────────────────
   - type: web
     name: myhack-frontend
     env: static
     buildCommand: "npm install && npm run build"
     staticPublishPath: "./dist"
     envVars:
+      # Backend URL injected at BUILD time so the bundle calls the right API
       - key: VITE_API_URL
         fromService:
           type: web
           name: myhack-backend
           envVarKey: RENDER_EXTERNAL_URL
+      # Firebase web config — REQUIRED at build time, else auth/invalid-api-key.
+      # Enter each value in the Render dashboard (sync: false = not stored in git).
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
     routes:
+      # SPA fallback so React Router deep links resolve to index.html
       - type: rewrite
         source: /*
         destination: /index.html
