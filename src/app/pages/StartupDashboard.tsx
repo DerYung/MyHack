@@ -8,7 +8,10 @@ import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCompany, updateCompany } from '../services/firestoreStartupService';
 import { getMentor } from '../services/firestoreMentorService';
-import type { CompanyDoc, MentorDoc } from '../types/firestore';
+import { getFunder } from '../services/firestoreFunderService';
+import { getLinkagesForCompany } from '../services/firestoreLinkageService';
+import type { CompanyDoc, MentorDoc, FunderDoc } from '../types/firestore';
+import { EcosystemGraph } from '../components/EcosystemGraph';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -27,6 +30,7 @@ export function StartupDashboard() {
   const { user } = useAuth();
   const [company, setCompany] = useState<CompanyDoc | null>(null);
   const [mentor, setMentor] = useState<MentorDoc | null>(null);
+  const [funders, setFunders] = useState<FunderDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +58,16 @@ export function StartupDashboard() {
             }
           } else {
             setMentor(null);
+          }
+
+          // Fetch active matched funders
+          try {
+            const linkages = await getLinkagesForCompany(docSnap.id);
+            const funderLinks = linkages.filter(l => l.type === 'funder-syndication' && l.status === 'active' && l.funder_uid);
+            const funderDocs = await Promise.all(funderLinks.map(l => getFunder(l.funder_uid)));
+            setFunders(funderDocs.filter(Boolean) as FunderDoc[]);
+          } catch (err) {
+            console.error('Failed to fetch funders:', err);
           }
         }
         setLoading(false);
@@ -243,7 +257,7 @@ export function StartupDashboard() {
              {company.status === 'ready' && (
                <div>
                  <h3 className="text-xl font-bold mb-4">Pitch Funders</h3>
-                 <Button onClick={() => navigate('/funder-matching')} className="w-full rounded-full bg-green-600 hover:bg-green-700 h-12">
+                 <Button onClick={() => navigate('/find-funders')} className="w-full rounded-full bg-green-600 hover:bg-green-700 h-12">
                    Enter Deal Flow <ArrowRight className="w-4 h-4 ml-2" />
                  </Button>
                </div>
@@ -251,8 +265,15 @@ export function StartupDashboard() {
 
              {(company.status === 'matched' || company.status === 'funded') && (
                <div>
-                 <h3 className="text-xl font-bold mb-2 text-green-700">🎉 {company.status === 'funded' ? 'Funded!' : 'Matched with Funder'}</h3>
-                 <p className="text-sm text-gray-500">Your journey through the ecosystem is progressing.</p>
+                 <h3 className="text-xl font-bold mb-1 text-green-700">
+                   {company.status === 'funded' ? '🎉 Funded!' : `🤝 ${funders.length > 0 ? funders.length : ''} Funder${funders.length !== 1 ? 's' : ''} Matched`}
+                 </h3>
+                 {funders.length > 0 && (
+                   <p className="text-sm text-gray-500 mb-3">{funders.map(f => f.name).join(' · ')}</p>
+                 )}
+                 <Button onClick={() => navigate('/find-funders')} className="w-full rounded-full bg-teal-600 hover:bg-teal-700 h-12 text-white">
+                   Find More Funders <ArrowRight className="w-4 h-4 ml-2" />
+                 </Button>
                </div>
              )}
           </motion.div>
@@ -412,6 +433,8 @@ export function StartupDashboard() {
           </motion.div>
 
         </motion.div>
+
+        {user && <EcosystemGraph uid={user.uid} role="Startup" />}
       </div>
     </div>
   );
