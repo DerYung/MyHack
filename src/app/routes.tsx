@@ -4,6 +4,8 @@ import { SubmitStartup } from "./pages/SubmitStartup";
 import { MentorMatching } from "./pages/MentorMatching";
 import { InvestorBrief } from "./pages/InvestorBrief";
 import { FunderMatching } from "./pages/FunderMatching";
+import { StartupFunderBrowse } from "./pages/StartupFunderBrowse";
+import { SavedFunders } from "./pages/SavedFunders";
 import { CoInvestment } from "./pages/CoInvestment";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { NotFound } from "./pages/NotFound";
@@ -49,6 +51,14 @@ export const router = createBrowserRouter([
       {
         path: "/funder-matching",
         Component: FunderMatching,
+      },
+      {
+        path: "/find-funders",
+        Component: StartupFunderBrowse,
+      },
+      {
+        path: "/saved-funders",
+        Component: SavedFunders,
       },
       {
         path: "/co-investment/:startupId",
