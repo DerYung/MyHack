@@ -54,6 +54,12 @@ class MatchResponse(BaseModel):
     pipeline: PipelineMetadata
 
 
+class BriefSource(BaseModel):
+    """A web source cited by the AI during brief generation."""
+    title: str
+    url: str
+
+
 class GeneratedBrief(BaseModel):
     """An AI-generated investor brief."""
     company_uid: str
@@ -64,6 +70,8 @@ class GeneratedBrief(BaseModel):
     compatibility_insights: list[str]
     risks: list[str]
     generated_at: str
+    web_grounded: bool = False
+    sources: list[BriefSource] = Field(default_factory=list)
 
 
 class BriefResponse(BaseModel):
