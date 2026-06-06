@@ -14,7 +14,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
@@ -51,63 +50,54 @@ export async function getLinkage(id: string): Promise<LinkageDoc | null> {
     : null;
 }
 
+function sortByCreatedAt(docs: LinkageDoc[]): LinkageDoc[] {
+  return docs.sort((a, b) => {
+    const ta = typeof a.created_at === 'number' ? a.created_at : (a.created_at?.toMillis?.() ?? 0);
+    const tb = typeof b.created_at === 'number' ? b.created_at : (b.created_at?.toMillis?.() ?? 0);
+    return tb - ta;
+  });
+}
+
 /** Get all linkages for a specific company */
 export async function getLinkagesForCompany(
   companyUid: string
 ): Promise<LinkageDoc[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where("company_uid", "==", companyUid),
-    orderBy("created_at", "desc")
-  );
+  const q = query(collection(db, COLLECTION), where("company_uid", "==", companyUid));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc));
+  return sortByCreatedAt(snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc)));
 }
 
 /** Get all linkages for a specific mentor */
 export async function getLinkagesForMentor(
   mentorUid: string
 ): Promise<LinkageDoc[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where("mentor_uid", "==", mentorUid),
-    orderBy("created_at", "desc")
-  );
+  const q = query(collection(db, COLLECTION), where("mentor_uid", "==", mentorUid));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc));
+  return sortByCreatedAt(snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc)));
 }
 
 /** Get all linkages for a specific funder */
 export async function getLinkagesForFunder(
   funderUid: string
 ): Promise<LinkageDoc[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where("funder_uid", "==", funderUid),
-    orderBy("created_at", "desc")
-  );
+  const q = query(collection(db, COLLECTION), where("funder_uid", "==", funderUid));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc));
+  return sortByCreatedAt(snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc)));
 }
 
 /** Get all linkages filtered by status */
 export async function getLinkagesByStatus(
   status: LinkageDoc["status"]
 ): Promise<LinkageDoc[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where("status", "==", status),
-    orderBy("created_at", "desc")
-  );
+  const q = query(collection(db, COLLECTION), where("status", "==", status));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc));
+  return sortByCreatedAt(snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc)));
 }
 
 /** Get all linkages (for admin dashboard) */
 export async function getAllLinkages(): Promise<LinkageDoc[]> {
-  const q = query(collection(db, COLLECTION), orderBy("created_at", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc));
+  const snap = await getDocs(collection(db, COLLECTION));
+  return sortByCreatedAt(snap.docs.map((d) => ({ ...d.data(), id: d.id } as LinkageDoc)));
 }
 
 /** Partial update on a linkage document */

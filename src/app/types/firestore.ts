@@ -23,6 +23,7 @@ export interface CompanyDoc {
   created_at: Timestamp | number;
   updated_at: Timestamp | number;
   is_approved?: boolean;
+  archived?: boolean;
 }
 
 // ─── DS2: Mentors ────────────────────────────────────────────────────────────

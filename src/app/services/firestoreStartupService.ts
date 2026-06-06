@@ -9,9 +9,9 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  writeBatch,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
@@ -83,6 +83,42 @@ export async function getCompaniesByStatus(
     const timeB = typeof b.created_at === 'number' ? b.created_at : (b.created_at?.toMillis?.() || 0);
     return timeB - timeA;
   });
+}
+
+/** Archive a single company (soft delete — hidden from dashboards but recoverable) */
+export async function archiveCompany(uid: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, uid), {
+    archived: true,
+    updated_at: serverTimestamp(),
+  });
+}
+
+/** Restore an archived company */
+export async function unarchiveCompany(uid: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, uid), {
+    archived: false,
+    updated_at: serverTimestamp(),
+  });
+}
+
+/** Bulk-archive all companies with status="matched" that are not already archived */
+export async function archiveAllMatchedCompanies(): Promise<number> {
+  const q = query(
+    collection(db, COLLECTION),
+    where("status", "==", "matched")
+  );
+  const snap = await getDocs(q);
+  const toArchive = snap.docs.filter(d => !d.data().archived);
+
+  if (toArchive.length === 0) return 0;
+
+  const batch = writeBatch(db);
+  const now = serverTimestamp();
+  toArchive.forEach(d => {
+    batch.update(d.ref, { archived: true, updated_at: now });
+  });
+  await batch.commit();
+  return toArchive.length;
 }
 
 /** Get companies assigned to a specific mentor */

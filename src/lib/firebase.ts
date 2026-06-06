@@ -12,8 +12,6 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
-console.log("FIREBASE CONFIG INJECTED:", firebaseConfig);
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -22,6 +20,7 @@ export const auth = getAuth(app);
 
 // Initialize Google Auth Provider for "Sign in with Google"
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Initialize Firestore
 export const db = getFirestore(app, "myhack");
