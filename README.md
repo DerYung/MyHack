@@ -12,6 +12,7 @@ Built in a 24-hour hackathon (GDG KL).
 ## Features
 
 ### For Startups
+
 - **Submit a profile** — describe your startup, sector, stage, funding needs, and goals
 - **AI mentor matching** — ranked mentor recommendations with match scores and reasoning
 - **Funder discovery** — browse and swipe through funders, save favourites, connect directly
@@ -19,19 +20,23 @@ Built in a 24-hour hackathon (GDG KL).
 - **Investor brief** — AI-generated brief verified against real web sources via Google Search grounding
 
 ### For Mentors
+
 - **Deal flow** — swipe through startup match requests (Tinder-style), accept to create a linkage
 - **Ecosystem graph** — visualise all active mentee connections
 
 ### For Funders
+
 - **Deal flow** — swipe through investment-ready startups ranked by AI score
 - **Co-investment view** — see detailed startup profiles and create linkages
 - **Ecosystem graph** — visualise all active portfolio connections
 
 ### For Admins
+
 - **Admin dashboard** — overview of users, companies, and linkages across the ecosystem
 - **Inference engine** — inspect the matching pipeline and its stage-by-stage metadata
 
 ### Shared
+
 - **Role-based dashboards** — each user type sees a tailored dashboard on login (`/dashboard` routes by role)
 - **Ecosystem graph** — interactive SVG graph of your connections; click any node to view details or mark a relationship as completed
 - **Google Sign-in** — one-click auth via Firebase, with role onboarding for new users
@@ -66,16 +71,17 @@ The API also reports per-stage timing and candidate counts (`PipelineMetadata`) 
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
-| UI Components | Radix UI, shadcn/ui, Lucide icons, MUI |
-| Animations | Motion (Framer Motion) — parallax landing page, swipe gestures, confetti |
-| Backend | Python, FastAPI, Uvicorn |
-| Database | Firebase Firestore |
-| Auth | Firebase Auth (Google Sign-in) |
-| AI / ML | Gemini 2.5 Flash, Google Search Grounding, text-embedding-005 |
-| Deployment | Render — Static Site (frontend) + Web Service (backend) |
+
+| Layer         | Technology                                                                |
+| ------------- | ------------------------------------------------------------------------- |
+| Frontend      | React 18, TypeScript, Vite, Tailwind CSS                                  |
+| UI Components | Radix UI, shadcn/ui, Lucide icons, MUI                                    |
+| Animations    | Motion (Framer Motion) — parallax landing page, swipe gestures, confetti |
+| Backend       | Python, FastAPI, Uvicorn                                                  |
+| Database      | Firebase Firestore                                                        |
+| Auth          | Firebase Auth (Google Sign-in)                                            |
+| AI / ML       | Gemini 2.5 Flash, Google Search Grounding, text-embedding-005             |
+| Deployment    | Render — Static Site (frontend) + Web Service (backend)                  |
 
 ---
 
@@ -109,12 +115,13 @@ The API also reports per-stage timing and candidate counts (`PipelineMetadata`) 
 
 ## API Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/match/mentors` | Rank mentors for a company |
-| POST | `/api/match/funders` | Rank funders for a company |
-| POST | `/api/briefs/generate` | Generate a web-grounded investor brief |
-| GET  | `/api/health` | Health check (used by Render + keep-alive) |
+
+| Method | Path                   | Description                                |
+| ------ | ---------------------- | ------------------------------------------ |
+| POST   | `/api/match/mentors`   | Rank mentors for a company                 |
+| POST   | `/api/match/funders`   | Rank funders for a company                 |
+| POST   | `/api/briefs/generate` | Generate a web-grounded investor brief     |
+| GET    | `/api/health`          | Health check (used by Render + keep-alive) |
 
 ---
 
@@ -174,6 +181,7 @@ FIRESTORE_DATABASE=your_database_name
 The app runs as **two Render services**, defined in `render.yaml`:
 
 ### 1. Backend — Web Service (Python)
+
 - **Root Directory:** `backend`
 - **Build:** `pip install -r requirements.txt`
 - **Start:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
@@ -182,15 +190,17 @@ The app runs as **two Render services**, defined in `render.yaml`:
 - **Secret File:** upload `service-account.json` under Environment → Secret Files (lands at `/etc/secrets/service-account.json`)
 
 ### 2. Frontend — Static Site (Vite)
+
 - **Build:** `npm install && npm run build`
 - **Publish Directory:** `dist`
 - **Env vars:** the six `VITE_FIREBASE_*` values + `VITE_API_URL` (the backend's public URL). These are baked in **at build time**, so set them before the build and redeploy after any change.
 - **Rewrite rule (required):** `/*` → `/index.html` (Action: **Rewrite**) so client-side routes resolve on refresh/deep-link instead of 404ing.
 
 ### Post-deploy checklist
-- [ ] Add the deployed frontend domain (e.g. `myhack-c503.onrender.com`) to **Firebase → Authentication → Settings → Authorized domains**, or Google Sign-in returns `auth/unauthorized-domain`.
-- [ ] Confirm the `/*` → `/index.html` rewrite exists on the Static Site.
-- [ ] Optional: a keep-alive ping (UptimeRobot / Cloudflare Worker cron) hitting `/api/health` every ~10 min to avoid free-tier backend cold starts.
+
+- [ ]  Add the deployed frontend domain (e.g. `myhack-c503.onrender.com`) to **Firebase → Authentication → Settings → Authorized domains**, or Google Sign-in returns `auth/unauthorized-domain`.
+- [ ]  Confirm the `/*` → `/index.html` rewrite exists on the Static Site.
+- [ ]  Optional: a keep-alive ping (UptimeRobot / Cloudflare Worker cron) hitting `/api/health` every ~10 min to avoid free-tier backend cold starts.
 
 > **Note:** on Render's free tier, the backend Web Service spins down after ~15 min of inactivity; the first request after idle has a ~30–60s cold start. The frontend Static Site is CDN-served and always instant.
 

@@ -8,7 +8,7 @@ Reads from Firestore, scores with Gemini, returns ranked matches.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import matching, briefs
+from routers import matching, briefs, companies
 from models.schemas import HealthResponse
 from config import get_settings
 import logging
@@ -61,7 +61,7 @@ app.add_middleware(
 # Register routers
 app.include_router(matching.router)
 app.include_router(briefs.router)
-
+app.include_router(companies.router)
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health_check():
